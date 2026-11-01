@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <div class="login-card">
+      <div class="brand-mark">EM</div>
+      <div class="eyebrow">ELECTRICAL MAINTENANCE</div>
+      <h1>Management System</h1>
+      <p class="muted">Secure access for authorized maintenance personnel.</p>
+      <label>Email Gmail terdaftar</label>
+      <input id="loginEmail" type="email" placeholder="nama@gmail.com" autocomplete="email">
+      <button id="sendOtpBtn" class="btn primary full" onclick="requestOtp()">Kirim kode OTP</button>
+      <div id="otpPanel" class="hidden">
+        <label>Kode OTP</label>
+        <input id="otpCode" inputmode="numeric" maxlength="6" placeholder="6 digit OTP">
+        <button class="btn primary full" onclick="verifyOtp()">Verifikasi & Login</button>
+      </div>
+      <div id="loginMessage" class="message"></div>
+      <small class="muted">Akses hanya untuk email yang telah didaftarkan oleh Admin.</small>
+    </div>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark small">EM</span><div><b>EMMS</b><small>Maintenance Suite</small></div></div>
+      <nav>
+        <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">▦ <span>Dashboard</span></button>
+        <button class="nav-item" data-page="equipment" onclick="showPage('equipment')">▣ <span>Equipment</span></button>
+        <button class="nav-item" data-page="users" onclick="showPage('users')">♙ <span>Users</span></button>
+      </nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span> System online <small>Phase 1 · v1.0</small></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+        <div><div class="eyebrow">MAINTENANCE WORKSPACE</div><h2 id="pageTitle">Dashboard</h2></div>
+        <div class="profile"><div class="avatar" id="userAvatar">U</div><div><b id="userName">User</b><small id="userRole">Role</small></div><button class="btn ghost" onclick="logout()">Logout</button></div>
+      </header>
+
+      <section id="dashboardPage" class="page">
+        <div class="welcome-row"><div><h3>Operational Overview</h3><p class="muted">Ringkasan kondisi equipment dan aktivitas sistem.</p></div><button class="btn outline" onclick="loadDashboard()">↻ Refresh</button></div>
+        <div class="stats-grid">
+          <div class="stat-card"><span>Total Equipment</span><strong id="statTotal">0</strong><small>Registered assets</small></div>
+          <div class="stat-card"><span>Normal</span><strong class="green" id="statNormal">0</strong><small>Operating condition</small></div>
+          <div class="stat-card"><span>Warning</span><strong class="orange" id="statWarning">0</strong><small>Needs attention</small></div>
+          <div class="stat-card"><span>Breakdown</span><strong class="red" id="statBreakdown">0</strong><small>Requires action</small></div>
+        </div>
+        <div class="content-grid">
+          <div class="panel"><div class="panel-head"><div><h3>Equipment Status</h3><p class="muted">Distribution by current status</p></div></div><div id="statusBars" class="bar-list"></div></div>
+          <div class="panel"><div class="panel-head"><div><h3>System Snapshot</h3><p class="muted">Phase 1 readiness</p></div></div><div class="snapshot"><div><span>Active users</span><b id="activeUsers">0</b></div><div><span>Database</span><b class="green">Connected</b></div><div><span>Authentication</span><b class="green">OTP enabled</b></div></div></div>
+        </div>
+        <div class="panel"><div class="panel-head"><div><h3>Recent Activity</h3><p class="muted">Latest recorded changes</p></div></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Module</th><th>Record ID</th></tr></thead><tbody id="activityRows"><tr><td colspan="5" class="muted">No activity yet.</td></tr></tbody></table></div></div>
+      </section>
+
+      <section id="equipmentPage" class="page hidden">
+        <div class="welcome-row"><div><h3>Equipment Register</h3><p class="muted">Master data seluruh equipment kelistrikan.</p></div><button class="btn primary" onclick="openEquipmentForm()">+ Add Equipment</button></div>
+        <div class="toolbar"><input id="equipmentSearch" placeholder="Search ID, name, brand, model..." oninput="debouncedEquipmentSearch()"><select id="statusFilter" onchange="loadEquipment()"><option value="">All status</option><option>Normal</option><option>Warning</option><option>Breakdown</option><option>Inactive</option></select></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>Equipment ID</th><th>Equipment Name</th><th>Category</th><th>Brand / Model</th><th>Location</th><th>Condition</th><th>Status</th><th>Action</th></tr></thead><tbody id="equipmentRows"></tbody></table></div></div>
+      </section>
+
+      <section id="usersPage" class="page hidden">
+        <div class="welcome-row"><div><h3>User Management</h3><p class="muted">Kelola email yang diizinkan mengakses EMMS.</p></div><button class="btn primary" onclick="openUserForm()">+ Add User</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>Full Name</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th></tr></thead><tbody id="userRows"></tbody></table></div></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="equipmentModal" class="modal hidden"><div class="modal-card"><div class="modal-head"><h3 id="equipmentModalTitle">Add Equipment</h3><button class="icon-btn" onclick="closeModal('equipmentModal')">✕</button></div>
+    <form id="equipmentForm" onsubmit="saveEquipment(event)">
+      <input type="hidden" id="equipmentId">
+      <div class="form-grid">
+        <div class="field span-2"><label>Equipment Name *</label><input id="equipmentName" required maxlength="120"></div>
+        <div class="field"><label>Category ID</label><input id="categoryId" placeholder="CAT-000001"></div>
+        <div class="field"><label>Building ID</label><input id="buildingId" placeholder="BLD-000001"></div>
+        <div class="field"><label>Location ID</label><input id="locationId" placeholder="LOC-000001"></div>
+        <div class="field"><label>Production Area</label><input id="productionArea"></div>
+        <div class="field"><label>Brand</label><input id="brand"></div>
+        <div class="field"><label>Model</label><input id="model"></div>
+        <div class="field"><label>Serial Number</label><input id="serialNumber"></div>
+        <div class="field"><label>Voltage</label><input id="voltage" placeholder="380 V"></div>
+        <div class="field"><label>Current</label><input id="current" placeholder="125 A"></div>
+        <div class="field"><label>Power Rating</label><input id="powerRating" placeholder="75 kW"></div>
+        <div class="field"><label>Electrical Specification</label><input id="electricalSpecification"></div>
+        <div class="field"><label>Installation Date</label><input id="installationDate" type="date"></div>
+        <div class="field"><label>Commissioning Date</label><input id="commissioningDate" type="date"></div>
+        <div class="field"><label>Condition</label><select id="equipmentCondition"><option>Good</option><option>Fair</option><option>Poor</option><option>Critical</option></select></div>
+        <div class="field"><label>Status</label><select id="equipmentStatus"><option>Normal</option><option>Warning</option><option>Breakdown</option><option>Inactive</option></select></div>
+        <div class="field span-2"><label>Photo URL (optional, upload module in Phase 2)</label><input id="equipmentPhotoURL"></div>
+        <div class="field span-2"><label>Notes</label><textarea id="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn outline" onclick="closeModal('equipmentModal')">Cancel</button><button class="btn primary" type="submit">Save Equipment</button></div>
+    </form>
+  </div></div>
+
+  <div id="detailModal" class="modal hidden"><div class="modal-card narrow"><div class="modal-head"><h3>Equipment Detail</h3><button class="icon-btn" onclick="closeModal('detailModal')">✕</button></div><div id="equipmentDetail"></div><div class="modal-actions"><button class="btn outline" onclick="closeModal('detailModal')">Close</button></div></div></div>
+
+  <div id="userModal" class="modal hidden"><div class="modal-card narrow"><div class="modal-head"><h3>Add User</h3><button class="icon-btn" onclick="closeModal('userModal')">✕</button></div>
+    <form onsubmit="saveUser(event)"><div class="field"><label>Full Name *</label><input id="newUserName" required></div><div class="field"><label>Gmail *</label><input id="newUserEmail" type="email" required placeholder="teknisi@gmail.com"></div><div class="field"><label>Department</label><input id="newUserDepartment" value="Electrical Maintenance"></div><div class="field"><label>Role</label><select id="newUserRole"><option>Technician</option><option>Supervisor</option><option>Maintenance Manager</option><option>Viewer</option><option>Admin</option></select></div><div class="modal-actions"><button type="button" class="btn outline" onclick="closeModal('userModal')">Cancel</button><button class="btn primary">Save User</button></div></form>
+  </div></div>
+  <div id="toast" class="toast"></div>
+  <script>const QR_EQUIPMENT_ID = <?!= JSON.stringify(qrEquipmentId) ?>;</script>
+  <?!= include('Client'); ?>
+</body>
+</html>
+

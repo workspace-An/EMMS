@@ -1,0 +1,157 @@
+<script>
+let SESSION_TOKEN = '';
+let CURRENT_USER = null;
+let searchTimer = null;
+
+function gas(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(err => reject(new Error(err.message || String(err))))[fn](...args);
+  });
+}
+function toast(message) {
+  const el = document.getElementById('toast'); el.textContent = message; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+function setLoginMessage(msg) { document.getElementById('loginMessage').textContent = msg || ''; }
+async function requestOtp() {
+  const email = document.getElementById('loginEmail').value.trim();
+  setLoginMessage('Mengirim OTP...');
+  try {
+    const res = await gas('apiRequestOtp', email);
+    setLoginMessage(res.message);
+    if (res.ok) document.getElementById('otpPanel').classList.remove('hidden');
+  } catch(e) { setLoginMessage(e.message); }
+}
+async function verifyOtp() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const otp = document.getElementById('otpCode').value.trim();
+  setLoginMessage('Memverifikasi...');
+  try {
+    const res = await gas('apiVerifyOtp', email, otp);
+    if (!res.ok) return setLoginMessage(res.message);
+    SESSION_TOKEN = res.token; CURRENT_USER = res.user;
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('appView').classList.remove('hidden');
+    document.getElementById('userName').textContent = CURRENT_USER.fullName;
+    document.getElementById('userRole').textContent = CURRENT_USER.role;
+    document.getElementById('userAvatar').textContent = CURRENT_USER.fullName.charAt(0).toUpperCase();
+    document.querySelector('[data-page="users"]').classList.toggle('hidden', CURRENT_USER.role !== 'Admin' && CURRENT_USER.role !== 'Maintenance Manager' && CURRENT_USER.role !== 'Supervisor');
+    showPage(QR_EQUIPMENT_ID ? 'equipment' : 'dashboard');
+    if (QR_EQUIPMENT_ID) openEquipmentDetails(QR_EQUIPMENT_ID);
+  } catch(e) { setLoginMessage(e.message); }
+}
+async function logout() {
+  try { await gas('apiLogout', SESSION_TOKEN); } catch(e) {}
+  SESSION_TOKEN = ''; CURRENT_USER = null;
+  document.getElementById('appView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  document.getElementById('otpPanel').classList.add('hidden');
+  document.getElementById('otpCode').value = '';
+  setLoginMessage('Anda telah logout.');
+}
+function showPage(page) {
+  ['dashboard','equipment','users'].forEach(p => {
+    document.getElementById(p+'Page').classList.toggle('hidden', p !== page);
+    const nav = document.querySelector('[data-page="'+p+'"]');
+    if (nav) nav.classList.toggle('active', p === page);
+  });
+  document.getElementById('pageTitle').textContent = page === 'users' ? 'User Management' : page.charAt(0).toUpperCase()+page.slice(1);
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'equipment') loadEquipment();
+  if (page === 'users') loadUsers();
+  document.getElementById('sidebar').classList.remove('open');
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+async function loadDashboard() {
+  try {
+    const d = await gas('apiGetDashboard', SESSION_TOKEN);
+    document.getElementById('statTotal').textContent = d.totalEquipment;
+    document.getElementById('statNormal').textContent = d.normal;
+    document.getElementById('statWarning').textContent = d.warning;
+    document.getElementById('statBreakdown').textContent = d.breakdown;
+    document.getElementById('activeUsers').textContent = d.activeUsers;
+    const statuses = [{name:'Normal',n:d.normal},{name:'Warning',n:d.warning},{name:'Breakdown',n:d.breakdown},{name:'Inactive',n:d.inactive}];
+    const max = Math.max(1, ...statuses.map(s=>s.n));
+    document.getElementById('statusBars').innerHTML = statuses.map(s =>
+      `<div class="bar-row"><span>${s.name}</span><div class="bar-track"><div class="bar-fill" style="width:${s.n/max*100}%"></div></div><b>${s.n}</b></div>`).join('');
+    document.getElementById('activityRows').innerHTML = d.recentActivity.length ? d.recentActivity.map(a =>
+      `<tr><td>${escapeHtml(formatDate(a.Timestamp))}</td><td>${escapeHtml(a.ActorName||'')}</td><td>${escapeHtml(a.Action||'')}</td><td>${escapeHtml(a.Entity||'')}</td><td>${escapeHtml(a.EntityID||'')}</td></tr>`).join('') :
+      '<tr><td colspan="5" class="muted">No activity yet.</td></tr>';
+  } catch(e) { toast(e.message); }
+}
+function debouncedEquipmentSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(loadEquipment, 250); }
+async function loadEquipment() {
+  try {
+    const rows = await gas('apiListEquipment', SESSION_TOKEN, {
+      search: document.getElementById('equipmentSearch').value,
+      status: document.getElementById('statusFilter').value
+    });
+    document.getElementById('equipmentRows').innerHTML = rows.length ? rows.map(r => `
+      <tr><td><b>${escapeHtml(r.EquipmentID)}</b></td><td>${escapeHtml(r.EquipmentName)}</td>
+      <td>${escapeHtml(r.CategoryID||'-')}</td><td>${escapeHtml([r.Brand,r.Model].filter(Boolean).join(' / ')||'-')}</td>
+      <td>${escapeHtml(r.ProductionArea||r.LocationID||'-')}</td><td>${escapeHtml(r.EquipmentCondition||'-')}</td>
+      <td><span class="badge ${escapeHtml(r.EquipmentStatus)}">${escapeHtml(r.EquipmentStatus)}</span></td>
+      <td><button class="action-link" onclick="editEquipment('${r.EquipmentID}')">Edit</button> <button class="action-link" onclick="showQr('${r.EquipmentID}')">QR</button></td></tr>`).join('') :
+      '<tr><td colspan="8" class="muted">Belum ada equipment. Klik Add Equipment untuk mulai.</td></tr>';
+  } catch(e) { toast(e.message); }
+}
+function openEquipmentForm(row) {
+  document.getElementById('equipmentForm').reset();
+  document.getElementById('equipmentId').value = row ? row.EquipmentID : '';
+  document.getElementById('equipmentModalTitle').textContent = row ? 'Edit Equipment' : 'Add Equipment';
+  const map = {equipmentName:'EquipmentName',categoryId:'CategoryID',buildingId:'BuildingID',locationId:'LocationID',productionArea:'ProductionArea',brand:'Brand',model:'Model',serialNumber:'SerialNumber',voltage:'Voltage',current:'Current',powerRating:'PowerRating',electricalSpecification:'ElectricalSpecification',installationDate:'InstallationDate',commissioningDate:'CommissioningDate',equipmentCondition:'EquipmentCondition',equipmentStatus:'EquipmentStatus',equipmentPhotoURL:'EquipmentPhotoURL',notes:'Notes'};
+  Object.keys(map).forEach(id => { if(row) document.getElementById(id).value = row[map[id]] || ''; });
+  document.getElementById('equipmentModal').classList.remove('hidden');
+}
+async function editEquipment(id) { try { openEquipmentForm(await gas('apiGetEquipment', SESSION_TOKEN, id)); } catch(e) { toast(e.message); } }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+async function saveEquipment(ev) {
+  ev.preventDefault();
+  const ids = ['equipmentId','equipmentName','categoryId','buildingId','locationId','productionArea','brand','model','serialNumber','voltage','current','powerRating','electricalSpecification','installationDate','commissioningDate','equipmentCondition','equipmentStatus','equipmentPhotoURL','notes'];
+  const keys = ['equipmentId','equipmentName','categoryId','buildingId','locationId','productionArea','brand','model','serialNumber','voltage','current','powerRating','electricalSpecification','installationDate','commissioningDate','equipmentCondition','equipmentStatus','equipmentPhotoURL','notes'];
+  const data = {}; ids.forEach((id,i)=>data[keys[i]]=document.getElementById(id).value);
+  try { await gas('apiSaveEquipment', SESSION_TOKEN, data); closeModal('equipmentModal'); toast('Equipment berhasil disimpan.'); loadEquipment(); loadDashboard(); }
+  catch(e) { toast(e.message); }
+}
+async function openEquipmentDetails(id) {
+  try {
+    const r = await gas('apiGetEquipment', SESSION_TOKEN, id);
+    const fields = [
+      ['Equipment ID',r.EquipmentID],['Name',r.EquipmentName],['Category',r.CategoryID],
+      ['Building',r.BuildingID],['Location',r.LocationID],['Production Area',r.ProductionArea],
+      ['Brand / Model',[r.Brand,r.Model].filter(Boolean).join(' / ')],['Serial Number',r.SerialNumber],
+      ['Voltage',r.Voltage],['Current',r.Current],['Power Rating',r.PowerRating],
+      ['Condition',r.EquipmentCondition],['Status',r.EquipmentStatus],['Notes',r.Notes]
+    ];
+    document.getElementById('equipmentDetail').innerHTML = fields.map(([k,v]) =>
+      `<div class="snapshot"><div><span>${escapeHtml(k)}</span><b>${escapeHtml(v||'-')}</b></div></div>`).join('');
+    document.getElementById('detailModal').classList.remove('hidden');
+  } catch(e) { toast(e.message); }
+}
+async function showQr(id) {
+  try {
+    const qr = await gas('apiGetEquipmentQr', SESSION_TOKEN, id);
+    const w = window.open('', '_blank');
+    if (!w) return toast('Izinkan pop-up untuk melihat QR.');
+    w.document.write(`<title>QR ${escapeHtml(id)}</title><body style="font-family:Arial;text-align:center;padding:30px"><h2>${escapeHtml(id)}</h2><img src="${escapeHtml(qr.QRImageURL)}"><p>${escapeHtml(qr.QRPayload)}</p></body>`);
+    w.document.close();
+  } catch(e) { toast(e.message); }
+}
+function openUserForm() { document.getElementById('userModal').classList.remove('hidden'); }
+async function saveUser(ev) {
+  ev.preventDefault();
+  const data = {fullName:document.getElementById('newUserName').value,email:document.getElementById('newUserEmail').value,department:document.getElementById('newUserDepartment').value,role:document.getElementById('newUserRole').value};
+  try { await gas('apiSaveUser', SESSION_TOKEN, data); closeModal('userModal'); ev.target.reset(); toast('User berhasil disimpan.'); loadUsers(); }
+  catch(e) { toast(e.message); }
+}
+async function loadUsers() {
+  try {
+    const rows = await gas('apiListUsers', SESSION_TOKEN);
+    document.getElementById('userRows').innerHTML = rows.map(u => `<tr><td>${escapeHtml(u.fullName)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.department||'-')}</td><td>${escapeHtml(u.role)}</td><td><span class="badge">${escapeHtml(u.status)}</span></td></tr>`).join('');
+  } catch(e) { toast(e.message); }
+}
+function escapeHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function formatDate(v) { if(!v) return '-'; const d=new Date(v); return isNaN(d)?v:d.toLocaleString('id-ID'); }
+</script>
+
