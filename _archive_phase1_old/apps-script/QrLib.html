@@ -1,0 +1,284 @@
+<script>
+/*
+ * EMMSQR - generator QR Code mandiri (tanpa library eksternal, tanpa internet).
+ * Mode byte (UTF-8), koreksi kesalahan level M, versi 1-10 (cukup untuk URL sampai ~210 byte).
+ * Algoritma mengikuti ISO/IEC 18004: Reed-Solomon GF(256) 0x11D, 8 pola mask + penalti,
+ * format info BCH(15,5), version info BCH(18,6). Diverifikasi dengan dekoder OpenCV (lihat test/qr-verify.mjs).
+ */
+(function (root) {
+  'use strict';
+
+  var ECC_PER_BLOCK_M = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];
+  var BLOCKS_M = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+  var ALIGN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]];
+  var MAX_VER = 10;
+
+  function rawModules(ver) {
+    var r = (16 * ver + 128) * ver + 64;
+    if (ver >= 2) {
+      var na = Math.floor(ver / 7) + 2;
+      r -= (25 * na - 10) * na - 55;
+      if (ver >= 7) r -= 36;
+    }
+    return r;
+  }
+
+  function totalCodewords(ver) { return Math.floor(rawModules(ver) / 8); }
+  function dataCodewords(ver) { return totalCodewords(ver) - ECC_PER_BLOCK_M[ver] * BLOCKS_M[ver]; }
+
+  // ---- GF(256)
+  var EXP = [], LOG = [];
+  (function () {
+    var x = 1;
+    for (var i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 256) x ^= 0x11D; }
+    for (var j = 255; j < 512; j++) EXP[j] = EXP[j - 255];
+  })();
+  function gmul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+
+  function rsGenerator(deg) {
+    var g = [1];
+    for (var i = 0; i < deg; i++) {
+      var next = [];
+      for (var k = 0; k <= g.length; k++) next[k] = 0;
+      for (var j = 0; j < g.length; j++) {
+        next[j] ^= g[j];
+        next[j + 1] ^= gmul(g[j], EXP[i]);
+      }
+      g = next;
+    }
+    return g; // koefisien dari pangkat tertinggi ke terendah, g[0] = 1
+  }
+
+  function rsRemainder(data, deg) {
+    var gen = rsGenerator(deg), res = [], i;
+    for (i = 0; i < deg; i++) res.push(0);
+    for (i = 0; i < data.length; i++) {
+      var factor = data[i] ^ res[0];
+      res.shift(); res.push(0);
+      for (var j = 0; j < deg; j++) res[j] ^= gmul(gen[j + 1], factor);
+    }
+    return res;
+  }
+
+  function utf8(str) {
+    var out = [];
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      if (c >= 0xD800 && c <= 0xDBFF && i + 1 < str.length) {
+        var d = str.charCodeAt(i + 1);
+        if (d >= 0xDC00 && d <= 0xDFFF) { c = 0x10000 + ((c - 0xD800) << 10) + (d - 0xDC00); i++; }
+      }
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
+      else if (c < 0x10000) out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      else out.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
+    return out;
+  }
+
+  function bit(v, i) { return ((v >>> i) & 1) !== 0; }
+
+  function encodeData(bytes, ver) {
+    var bits = [];
+    function put(val, len) { for (var i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); }
+    put(4, 4);
+    put(bytes.length, ver <= 9 ? 8 : 16);
+    for (var i = 0; i < bytes.length; i++) put(bytes[i], 8);
+    var cap = dataCodewords(ver) * 8;
+    put(0, Math.min(4, cap - bits.length));
+    while (bits.length % 8) bits.push(0);
+    var cw = [];
+    for (var k = 0; k < bits.length; k += 8) {
+      var b = 0;
+      for (var m = 0; m < 8; m++) b = (b << 1) | bits[k + m];
+      cw.push(b);
+    }
+    var pad = [0xEC, 0x11], p = 0;
+    while (cw.length < dataCodewords(ver)) cw.push(pad[p++ & 1]);
+    return cw;
+  }
+
+  function interleave(data, ver) {
+    var nb = BLOCKS_M[ver], ecc = ECC_PER_BLOCK_M[ver], total = totalCodewords(ver);
+    var shortLen = Math.floor(total / nb), longCount = total % nb;
+    var blocks = [], pos = 0, b;
+    for (b = 0; b < nb; b++) {
+      var dlen = shortLen - ecc + (b < nb - longCount ? 0 : 1);
+      var d = data.slice(pos, pos + dlen); pos += dlen;
+      blocks.push({ d: d, e: rsRemainder(d, ecc) });
+    }
+    var out = [], i;
+    var maxD = shortLen - ecc + 1;
+    for (i = 0; i < maxD; i++) for (b = 0; b < nb; b++) if (i < blocks[b].d.length) out.push(blocks[b].d[i]);
+    for (i = 0; i < ecc; i++) for (b = 0; b < nb; b++) out.push(blocks[b].e[i]);
+    return out;
+  }
+
+  function Matrix(ver) {
+    this.ver = ver;
+    this.size = ver * 4 + 17;
+    this.m = []; this.f = [];
+    for (var y = 0; y < this.size; y++) {
+      this.m.push([]); this.f.push([]);
+      for (var x = 0; x < this.size; x++) { this.m[y].push(false); this.f[y].push(false); }
+    }
+  }
+  Matrix.prototype.setFn = function (x, y, v) { this.m[y][x] = v; this.f[y][x] = true; };
+
+  function drawFunctions(mx) {
+    var size = mx.size, ver = mx.ver, i, dx, dy;
+    for (i = 0; i < size; i++) { mx.setFn(6, i, i % 2 === 0); mx.setFn(i, 6, i % 2 === 0); }
+    function finder(cx, cy) {
+      for (dy = -4; dy <= 4; dy++) for (dx = -4; dx <= 4; dx++) {
+        var dist = Math.max(Math.abs(dx), Math.abs(dy)), xx = cx + dx, yy = cy + dy;
+        if (xx >= 0 && xx < size && yy >= 0 && yy < size) mx.setFn(xx, yy, dist !== 2 && dist !== 4);
+      }
+    }
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    var pos = ALIGN[ver], n = pos.length, a, b;
+    for (a = 0; a < n; a++) for (b = 0; b < n; b++) {
+      if ((a === 0 && b === 0) || (a === 0 && b === n - 1) || (a === n - 1 && b === 0)) continue;
+      for (dy = -2; dy <= 2; dy++) for (dx = -2; dx <= 2; dx++) {
+        mx.setFn(pos[a] + dx, pos[b] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+      }
+    }
+    drawFormat(mx, 0); // pencadang area format
+    if (ver >= 7) {
+      var rem = ver;
+      for (i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+      var bits = (ver << 12) | rem;
+      for (i = 0; i < 18; i++) {
+        var bt = bit(bits, i), p = size - 11 + (i % 3), q = Math.floor(i / 3);
+        mx.setFn(p, q, bt); mx.setFn(q, p, bt);
+      }
+    }
+  }
+
+  function drawFormat(mx, mask) {
+    var size = mx.size, i;
+    var data = (0 << 3) | mask; // level M = 0
+    var rem = data;
+    for (i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+    var bits = ((data << 10) | rem) ^ 0x5412;
+    for (i = 0; i <= 5; i++) mx.setFn(8, i, bit(bits, i));
+    mx.setFn(8, 7, bit(bits, 6)); mx.setFn(8, 8, bit(bits, 7)); mx.setFn(7, 8, bit(bits, 8));
+    for (i = 9; i < 15; i++) mx.setFn(14 - i, 8, bit(bits, i));
+    for (i = 0; i < 8; i++) mx.setFn(size - 1 - i, 8, bit(bits, i));
+    for (i = 8; i < 15; i++) mx.setFn(8, size - 15 + i, bit(bits, i));
+    mx.setFn(8, size - 8, true);
+  }
+
+  function placeData(mx, cw) {
+    var size = mx.size, i = 0, right, vert, j;
+    for (right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (vert = 0; vert < size; vert++) {
+        for (j = 0; j < 2; j++) {
+          var x = right - j, upward = ((right + 1) & 2) === 0, y = upward ? size - 1 - vert : vert;
+          if (!mx.f[y][x] && i < cw.length * 8) {
+            mx.m[y][x] = bit(cw[i >>> 3], 7 - (i & 7));
+            i++;
+          }
+        }
+      }
+    }
+  }
+
+  function maskFn(k, x, y) {
+    switch (k) {
+      case 0: return (x + y) % 2 === 0;
+      case 1: return y % 2 === 0;
+      case 2: return x % 3 === 0;
+      case 3: return (x + y) % 3 === 0;
+      case 4: return (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0;
+      case 5: return (x * y) % 2 + (x * y) % 3 === 0;
+      case 6: return ((x * y) % 2 + (x * y) % 3) % 2 === 0;
+      default: return ((x + y) % 2 + (x * y) % 3) % 2 === 0;
+    }
+  }
+
+  function applyMask(mx, k) {
+    for (var y = 0; y < mx.size; y++) for (var x = 0; x < mx.size; x++) {
+      if (!mx.f[y][x] && maskFn(k, x, y)) mx.m[y][x] = !mx.m[y][x];
+    }
+  }
+
+  function penalty(mx) {
+    var size = mx.size, m = mx.m, p = 0, x, y, run, k;
+    function lines(get) {
+      for (var a = 0; a < size; a++) {
+        run = 1;
+        for (var b = 1; b < size; b++) {
+          if (get(a, b) === get(a, b - 1)) { run++; if (run === 5) p += 3; else if (run > 5) p += 1; }
+          else run = 1;
+        }
+        // pola mirip finder 1:1:3:1:1 dengan 4 modul terang di salah satu sisi
+        var s = '';
+        for (b = 0; b < size; b++) s += get(a, b) ? '1' : '0';
+        var re = /(?=(00001011101|10111010000))/g, mt;
+        while ((mt = re.exec(s)) !== null) { p += 40; re.lastIndex = mt.index + 1; }
+      }
+    }
+    lines(function (a, b) { return m[a][b]; });
+    lines(function (a, b) { return m[b][a]; });
+    for (y = 0; y < size - 1; y++) for (x = 0; x < size - 1; x++) {
+      var c = m[y][x];
+      if (c === m[y][x + 1] && c === m[y + 1][x] && c === m[y + 1][x + 1]) p += 3;
+    }
+    var dark = 0;
+    for (y = 0; y < size; y++) for (x = 0; x < size; x++) if (m[y][x]) dark++;
+    var total = size * size;
+    k = Math.ceil(Math.abs(dark * 20 - total * 10) / total) - 1;
+    p += Math.max(0, k) * 10;
+    return p;
+  }
+
+  function make(text) {
+    var bytes = utf8(String(text)), ver = 0, v;
+    for (v = 1; v <= MAX_VER; v++) {
+      var need = 4 + (v <= 9 ? 8 : 16) + bytes.length * 8;
+      if (need <= dataCodewords(v) * 8) { ver = v; break; }
+    }
+    if (!ver) throw new Error('QR: teks terlalu panjang (' + bytes.length + ' byte)');
+    var cw = interleave(encodeData(bytes, ver), ver);
+    var base = new Matrix(ver);
+    drawFunctions(base);
+    placeData(base, cw);
+    var best = null, bestP = Infinity, bestMask = 0;
+    for (var k = 0; k < 8; k++) {
+      var mx = new Matrix(ver);
+      mx.m = base.m.map(function (r) { return r.slice(); });
+      mx.f = base.f;
+      applyMask(mx, k);
+      drawFormat(mx, k);
+      var pen = penalty(mx);
+      if (pen < bestP) { bestP = pen; best = mx; bestMask = k; }
+    }
+    return { size: best.size, version: ver, mask: bestMask, modules: best.m };
+  }
+
+  /** SVG string (modul gelap sebagai satu path). */
+  function svg(text, opt) {
+    opt = opt || {};
+    var q = make(text), margin = opt.margin === undefined ? 4 : opt.margin, n = q.size + margin * 2, d = '';
+    for (var y = 0; y < q.size; y++) for (var x = 0; x < q.size; x++) {
+      if (q.modules[y][x]) d += 'M' + (x + margin) + ',' + (y + margin) + 'h1v1h-1z';
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges" role="img" aria-label="QR Code">' +
+      '<rect width="' + n + '" height="' + n + '" fill="' + (opt.bg || '#ffffff') + '"/>' +
+      '<path d="' + d + '" fill="' + (opt.fg || '#000000') + '"/></svg>';
+  }
+
+  /** Gambar QR ke canvas 2D pada koordinat (ox, oy) dengan ukuran sisi `px`. */
+  function drawCanvas(ctx, text, ox, oy, px, margin) {
+    var q = make(text), m = margin === undefined ? 4 : margin, n = q.size + m * 2, s = px / n;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(ox, oy, px, px);
+    ctx.fillStyle = '#000000';
+    for (var y = 0; y < q.size; y++) for (var x = 0; x < q.size; x++) {
+      if (q.modules[y][x]) ctx.fillRect(ox + Math.floor((x + m) * s), oy + Math.floor((y + m) * s), Math.ceil(s), Math.ceil(s));
+    }
+  }
+
+  root.EMMSQR = { make: make, svg: svg, drawCanvas: drawCanvas, _dataCodewords: dataCodewords, _totalCodewords: totalCodewords, MAX_VER: MAX_VER };
+})(window);
+</script>

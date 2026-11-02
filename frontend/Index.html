@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b2a4a">
+  <title>EMMS</title>
+  <?!= include('Styles') ?>
+</head>
+<body>
+  <div id="loadbar"></div>
+  <div id="root"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+  <noscript>EMMS membutuhkan JavaScript / EMMS requires JavaScript / EMMS 需要 JavaScript</noscript>
+  <script>window.__BOOT = <?!= bootJson ?>;</script>
+  <?!= include('QrLib') ?>
+  <?!= include('I18n') ?>
+  <?!= include('Client') ?>
+  <?!= include('Dashboard') ?>
+  <?!= include('Equipment') ?>
+  <?!= include('Users') ?>
+  <?!= include('Settings') ?>
+  <script>EMMS.start();</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<script>
+/* EMMS - Users.html */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, S = E.S;
+  var ROLES = ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'];
+
+  function form(u, done) {
+    var edit = !!u;
+    var fields = [
+      { name: 'FullName', required: true, full: true }, { name: 'Email', type: 'email', required: true, full: true },
+      { name: 'Role', type: 'select', required: true, options: ROLES.map(function (r) { return { v: r, l: E.tv('role', r) }; }) },
+      { name: 'Department' },
+      { name: 'Status', type: 'select', options: [{ v: 'Active', l: t('rstatus.Active') }, { v: 'Inactive', l: t('rstatus.Inactive') }] }
+    ];
+    var v = u || { Role: 'Technician', Status: 'Active' };
+    var save = E.btn(t('common.save'), 'primary', function () {
+      var data = E.readForm(m.body); if (edit) { data.UserID = u.UserID; data.UpdatedAt = u.UpdatedAt; }
+      save.disabled = true;
+      E.api('users.save', data).then(function () { m.close(); E.toast(t('common.saved'), 'ok'); done(); })
+        .catch(function (e) { save.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+    });
+    var m = E.modal({ title: edit ? t('users.edit') : t('users.add'), size: 'sm', body: '<div class="grid">' + fields.map(function (f) { return E.fieldHtml(f, v[f.name]); }).join('') + '</div>', footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), save] });
+  }
+
+  E.pages.users = {
+    render: function (el) {
+      var manage = E.can('users.manage');
+      function load() {
+        el.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+        E.api('users.list', {}).then(function (rows) {
+          el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.users')) + '</h1></div>' + (manage ? '' : '<div class="notice info">' + esc(t('users.readonly')) + '</div>') +
+            '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.FullName')) + '</th><th>' + esc(t('f.Email')) + '</th><th>' + esc(t('f.Role')) + '</th><th class="hide-sm">' + esc(t('f.Department')) +
+            '</th><th>' + esc(t('f.Status')) + '</th><th class="hide-sm">' + esc(t('users.lastLogin')) + '</th><th></th></tr></thead><tbody>' + rows.map(function (u, i) {
+              return '<tr><td><b>' + esc(u.FullName) + '</b></td><td>' + esc(u.Email) + '</td><td>' + E.badge('info', E.tv('role', u.Role)) + '</td><td class="hide-sm">' + esc(u.Department) + '</td><td>' +
+                E.badge(u.Status === 'Active' ? 'ok' : 'gray', t('rstatus.' + u.Status)) + '</td><td class="hide-sm sub">' + esc(E.fmtDT(u.LastLoginAt) || '-') + '</td><td class="actions">' +
+                (manage ? '<button class="icon-btn" data-e="' + i + '" title="' + esc(t('common.edit')) + '">' + E.ic('edit') + '</button>' : '') + '</td></tr>';
+            }).join('') + '</tbody></table></div></div>' +
+            (manage ? '' : '');
+          if (manage) {
+            var add = E.btn(t('users.add'), 'primary', function () { form(null, load); }, 'plus');
+            el.querySelector('.page-head').appendChild(add);
+            E.$$('[data-e]', el).forEach(function (b) { b.onclick = function () { form(rows[+b.dataset.e], load); }; });
+          }
+        }).catch(function (e) { el.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+      }
+      load();
+    }
+  };
+})();
+</script>

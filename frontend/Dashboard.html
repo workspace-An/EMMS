@@ -1,0 +1,73 @@
+<script>
+/* EMMS - Dashboard.html */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t;
+  var GOOD = '#16a34a', MID = '#f59e0b', BAD = '#dc2626';
+
+  function donut(labels, values, colors, trKey) {
+    var total = values.reduce(function (a, b) { return a + b; }, 0), off = 25, segs = '';
+    if (total > 0) values.forEach(function (v, i) {
+      var p = v / total * 100;
+      if (p > 0) segs += '<circle cx="21" cy="21" r="15.9155" fill="none" stroke="' + colors[i] + '" stroke-width="6" stroke-dasharray="' + p + ' ' + (100 - p) + '" stroke-dashoffset="' + off + '"/>';
+      off -= p;
+    });
+    return '<div class="donut"><svg viewBox="0 0 42 42" role="img"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="#eef2f7" stroke-width="6"/>' + segs +
+      '<text x="21" y="22.5" text-anchor="middle" font-size="7" font-weight="700" fill="#1e293b">' + total + '</text></svg><div class="legend">' +
+      labels.map(function (l, i) { return '<div><i style="background:' + colors[i] + '"></i>' + esc(E.tv(trKey, l)) + ': <b>' + values[i] + '</b></div>'; }).join('') + '</div></div>';
+  }
+
+  function hbars(labels, values) {
+    if (!labels.length) return '<div class="empty">' + esc(t('common.noData')) + '</div>';
+    var max = Math.max.apply(null, values.concat([1]));
+    return labels.map(function (l, i) {
+      return '<div class="hbar"><span class="lb" title="' + esc(l) + '">' + esc(l) + '</span><div class="bar"><i style="width:' + (values[i] / max * 100) + '%"></i></div><b>' + values[i] + '</b></div>';
+    }).join('');
+  }
+
+  function monthly(c) {
+    var max = Math.max.apply(null, c.pm.concat(c.cm).concat([1])), W = 600, H = 200, pad = 26, bw = 14, step = (W - pad) / c.labels.length, out = '';
+    for (var g = 0; g <= 4; g++) { var y = H - 20 - (H - 40) * g / 4; out += '<line x1="' + pad + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#e2e8f0"/><text x="0" y="' + (y + 4) + '" font-size="10" fill="#64748b">' + Math.round(max * g / 4) + '</text>'; }
+    c.labels.forEach(function (m, i) {
+      var x = pad + i * step + (step - 2 * bw - 2) / 2;
+      var h1 = (H - 40) * c.pm[i] / max, h2 = (H - 40) * c.cm[i] / max;
+      out += '<rect x="' + x + '" y="' + (H - 20 - h1) + '" width="' + bw + '" height="' + h1 + '" fill="#1e6fd9" rx="2"/><rect x="' + (x + bw + 2) + '" y="' + (H - 20 - h2) + '" width="' + bw + '" height="' + h2 + '" fill="#f59e0b" rx="2"/>' +
+        '<text x="' + (x + bw) + '" y="' + (H - 6) + '" font-size="9" text-anchor="middle" fill="#64748b">' + m.slice(5) + '</text>';
+    });
+    return '<svg class="chart-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img">' + out + '</svg><div class="legend" style="flex-direction:row;gap:16px"><span><i style="background:#1e6fd9"></i>' +
+      esc(t('dash.pmDone')) + '</span><span><i style="background:#f59e0b"></i>' + esc(t('dash.cmReported')) + '</span></div>';
+  }
+
+  function card(key, icon, kind, v, phase) {
+    return '<div class="card stat ' + kind + '"><div class="ico">' + E.ic(icon) + '</div><div><div class="v">' + v + '</div><div class="l">' + esc(t('dash.' + key)) +
+      (phase ? '<span class="ph">' + esc(t('common.phase', { n: phase })) + '</span>' : '') + '</div></div></div>';
+  }
+
+  E.pages.dashboard = {
+    render: function (el) {
+      el.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+      E.api('dashboard.summary', {}).then(function (d) {
+        var c = d.cards, ch = d.charts;
+        var html = '<div class="page-head"><h1>' + esc(t('nav.dashboard')) + '</h1><button class="btn" id="dref">' + E.ic('refresh') + '<span>' + esc(t('common.refresh')) + '</span></button></div>' +
+          '<div class="cards">' + card('totalEquipment', 'bolt', '', c.totalEquipment) + card('normal', 'check', 'ok', c.normal) + card('warning', 'shield', 'warn', c.warning) + card('breakdown', 'wrench', 'bad', c.breakdown) + '</div>' +
+          '<div class="cards">' + card('inspectionsToday', 'clipboard', '', c.inspectionsToday, 2) + card('notInspected', 'clipboard', 'warn', c.notInspected, 2) +
+          card('pmUpcoming', 'calendar', '', c.pmUpcoming, 3) + card('pmOverdue', 'calendar', 'bad', c.pmOverdue, 3) +
+          card('cmActive', 'wrench', 'warn', c.cmActive, 4) + card('woOpen', 'file', '', c.woOpen, 4) + card('k3Findings', 'shield', 'bad', c.k3Findings, 5) + '</div>' +
+          '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartCondition')) + '</div><div class="card-b">' + donut(ch.condition.labels, ch.condition.values, [GOOD, MID, BAD], 'cond') + '</div></div>' +
+          '<div class="card"><div class="card-h">' + esc(t('dash.chartStatus')) + '</div><div class="card-b">' + donut(ch.status.labels, ch.status.values, [GOOD, MID, BAD], 'status') + '</div></div></div>' +
+          '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartMonthly')) + '</div><div class="card-b">' + monthly(ch.monthly) + '</div></div>' +
+          '<div class="card"><div class="card-h">' + esc(t('dash.chartCategory')) + '</div><div class="card-b">' + hbars(ch.category.labels, ch.category.values) + '</div></div></div>' +
+          '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartTech')) + '<span class="badge b-gray" style="font-size:10px">' + esc(t('common.phase', { n: 4 })) + '</span></div><div class="card-b">' + hbars(ch.technician.labels, ch.technician.values) + '</div></div>';
+        if (d.activity) {
+          html += '<div class="card"><div class="card-h">' + esc(t('dash.recent')) + '</div><div class="table-wrap"><table><tbody>' + (d.activity.length ? d.activity.map(function (a) {
+            return '<tr><td class="sub" style="white-space:nowrap">' + esc(E.fmtDT(a.EventTime)) + '</td><td>' + esc(a.UserEmail) + '</td><td><b>' + esc(a.Action) + '</b> <span class="sub">' + esc(a.EntityID) + '</span></td></tr>';
+          }).join('') : '<tr><td class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+        }
+        html += '</div>';
+        el.innerHTML = html;
+        el.querySelector('#dref').onclick = function () { E.pages.dashboard.render(el); };
+      }).catch(function (e) { el.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+    }
+  };
+})();
+</script>

@@ -1,0 +1,203 @@
+common.save|Simpan|Save|保存
+common.cancel|Batal|Cancel|取消
+common.edit|Ubah|Edit|编辑
+common.delete|Hapus|Delete|删除
+common.add|Tambah|Add|添加
+common.close|Tutup|Close|关闭
+common.confirm|Konfirmasi|Confirm|确认
+common.yes|Ya|Yes|是
+common.no|Tidak|No|否
+common.loading|Memuat...|Loading...|加载中...
+common.noData|Tidak ada data|No data|暂无数据
+common.refresh|Muat ulang|Refresh|刷新
+common.logout|Keluar|Sign out|退出
+common.language|Bahasa|Language|语言
+common.reason|Alasan|Reason|原因
+common.typeToConfirm|Ketik "{text}" untuk konfirmasi|Type "{text}" to confirm|输入“{text}”以确认
+common.phase|Fase {n}|Phase {n}|第{n}阶段
+common.print|Cetak|Print|打印
+common.count|{n} data|{n} records|共 {n} 条
+common.updated|Terakhir diubah|Last updated|最后更新
+common.saved|Tersimpan|Saved|已保存
+login.subtitle|Electrical Maintenance Management System|Electrical Maintenance Management System|电气维护管理系统
+login.email|Email Google terdaftar|Registered Google email|已登记的 Google 邮箱
+login.sendCode|Kirim kode login|Send login code|发送登录验证码
+login.sent|Jika {email} terdaftar, kode 6 digit telah dikirim ke inbox. Berlaku 10 menit.|If {email} is registered, a 6-digit code was sent to its inbox. Valid for 10 minutes.|如果 {email} 已登记，6 位验证码已发送至该邮箱，10 分钟内有效。
+login.code|Kode 6 digit|6-digit code|6 位验证码
+login.verify|Masuk|Sign in|登录
+login.resend|Kirim ulang kode|Resend code|重新发送
+login.resent|Kode dikirim ulang|Code resent|验证码已重新发送
+login.changeEmail|Ganti email|Change email|更换邮箱
+login.note|Hanya email yang didaftarkan Admin yang dapat masuk.|Only emails registered by an Admin can sign in.|只有管理员登记的邮箱才能登录。
+setup.needed|Database belum disetup.|The database has not been set up yet.|数据库尚未初始化。
+setup.how|Buka Apps Script, jalankan fungsi setupEMMS() satu kali, lalu muat ulang halaman ini.|Open Apps Script, run setupEMMS() once, then reload this page.|请打开 Apps Script，运行一次 setupEMMS()，然后刷新此页面。
+nav.dashboard|Dashboard|Dashboard|仪表盘
+nav.equipment|Equipment|Equipment|设备
+nav.inspection|Inspeksi Harian|Daily Inspection|每日巡检
+nav.pm|Preventive Maintenance|Preventive Maintenance|预防性维护
+nav.cm|Corrective Maintenance|Corrective Maintenance|纠正性维护
+nav.wo|Work Order|Work Orders|工单
+nav.safety|K3 Listrik|Electrical Safety|电气安全
+nav.inventory|Inventaris|Inventory|库存
+nav.reports|Laporan|Reports|报表
+nav.users|Pengguna|Users|用户
+nav.settings|Pengaturan|Settings|设置
+placeholder.msg|Modul ini dibangun pada Phase {n}.|This module is built in Phase {n}.|该模块将在第 {n} 阶段开发。
+dash.totalEquipment|Total equipment|Total equipment|设备总数
+dash.normal|Normal|Normal|正常
+dash.warning|Warning|Warning|警告
+dash.breakdown|Breakdown|Breakdown|故障
+dash.inspectionsToday|Inspeksi hari ini|Inspections today|今日巡检
+dash.notInspected|Belum diinspeksi|Not inspected|未巡检
+dash.pmUpcoming|PM 7 hari ke depan|PM next 7 days|7天内预防性维护
+dash.pmOverdue|PM overdue|PM overdue|预防性维护逾期
+dash.cmActive|Corrective aktif|Active corrective|进行中的纠正性维护
+dash.woOpen|Work order terbuka|Open work orders|未关闭工单
+dash.k3Findings|Temuan K3|Safety findings|安全发现项
+dash.chartCondition|Kondisi equipment|Equipment condition|设备状况
+dash.chartStatus|Status operasional|Operational status|运行状态
+dash.chartMonthly|Maintenance bulanan (12 bulan)|Monthly maintenance (12 months)|月度维护（12个月）
+dash.chartCategory|Equipment per kategori|Equipment by category|按类别设备
+dash.chartTech|Pekerjaan teknisi|Technician workload|技术员工作量
+dash.recent|Aktivitas terbaru|Recent activity|最新活动
+dash.pmDone|PM selesai|PM completed|已完成预防性维护
+dash.cmReported|Kerusakan dilaporkan|Breakdowns reported|报告的故障
+eq.searchPh|Cari ID, nama, merek, serial...|Search ID, name, brand, serial...|搜索编号、名称、品牌、序列号...
+eq.allCategories|Semua kategori|All categories|所有类别
+eq.allBuildings|Semua gedung|All buildings|所有建筑
+eq.allLocations|Semua lokasi|All locations|所有位置
+eq.allStatus|Semua status/kondisi|All status/condition|所有状态/状况
+eq.place|Gedung / Lokasi|Building / Location|建筑 / 位置
+eq.printSel|Cetak QR terpilih|Print selected QR|打印所选二维码
+eq.selectFirst|Centang equipment terlebih dahulu.|Select equipment first.|请先勾选设备。
+eq.add|Tambah equipment|Add equipment|添加设备
+eq.edit|Ubah equipment|Edit equipment|编辑设备
+eq.tabInfo|Informasi|Information|信息
+eq.tabHistory|Riwayat|History|历史
+eq.tabAudit|Log perubahan|Change log|变更记录
+eq.noPhoto|Belum ada foto|No photo|暂无照片
+eq.noUrl|URL web app belum diatur. QR akan berisi ID saja. Atur di Pengaturan > Umum setelah deployment.|Web app URL is not set. The QR will only contain the ID. Set it in Settings > General after deployment.|尚未设置 Web App 网址，二维码仅包含编号。部署后请在 设置 > 常规 中设置。
+eq.qrHelp|Pindai dengan kamera HP untuk membuka detail equipment ini.|Scan with a phone camera to open this equipment.|用手机相机扫描即可打开此设备。
+eq.regenQr|Buat ulang QR|Regenerate QR|重新生成二维码
+eq.regenWarn|Versi QR baru dibuat. Label lama yang sudah dicetak tetap berfungsi selama URL web app tidak berubah.|A new QR version is created. Printed labels keep working as long as the web app URL does not change.|将生成新版本二维码。只要 Web App 网址不变，已打印标签仍有效。
+eq.hInsp|Riwayat inspeksi|Inspection history|巡检历史
+eq.hPm|Riwayat preventive maintenance|Preventive maintenance history|预防性维护历史
+eq.hCm|Riwayat kerusakan|Breakdown history|故障历史
+eq.hWo|Work order|Work orders|工单
+eq.noHistory|Belum ada riwayat. Riwayat akan muncul saat modul inspeksi/maintenance aktif.|No history yet. It appears once inspection/maintenance modules are in use.|暂无历史记录。巡检/维护模块启用后将显示。
+eq.restore|Pulihkan|Restore|恢复
+eq.deleteTitle|Hapus equipment|Delete equipment|删除设备
+eq.deleteMsg|Equipment {id} akan dinonaktifkan dari daftar. Riwayat tetap tersimpan dan dapat dipulihkan Admin.|Equipment {id} will be removed from lists. History is kept and an Admin can restore it.|设备 {id} 将从列表中移除。历史记录保留，管理员可恢复。
+eq.deleted|Equipment dihapus|Equipment deleted|设备已删除
+eq.photo|Foto equipment|Equipment photo|设备照片
+eq.photoFail|Data tersimpan, tetapi foto gagal diunggah:|Saved, but the photo upload failed:|数据已保存，但照片上传失败：
+eq.noLocations|(belum ada lokasi di gedung ini)|(no locations in this building)|（该建筑暂无位置）
+eq.labels|Label QR equipment|Equipment QR labels|设备二维码标签
+eq.printHint|Jika dialog cetak tidak muncul, gunakan Ctrl+P / menu cetak browser.|If the print dialog does not open, use Ctrl+P / the browser print menu.|如果未弹出打印窗口，请使用 Ctrl+P 或浏览器打印菜单。
+users.add|Tambah pengguna|Add user|添加用户
+users.edit|Ubah pengguna|Edit user|编辑用户
+users.readonly|Anda hanya dapat melihat daftar pengguna. Pengelolaan hanya untuk Admin.|You can view users only. Only Admins can manage them.|您只能查看用户列表，仅管理员可管理。
+users.lastLogin|Login terakhir|Last login|最后登录
+settings.general|Umum|General|常规
+settings.master|Master data|Master data|主数据
+settings.audit|Audit log|Audit log|审计日志
+settings.system|Sistem|System|系统
+settings.mdBuildings|Gedung|Buildings|建筑
+settings.mdLocations|Lokasi|Locations|位置
+settings.mdCategories|Kategori|Categories|类别
+settings.mdFactories|Pabrik|Factories|工厂
+settings.mdDeleteMsg|Data akan dinonaktifkan. Ditolak jika masih dipakai equipment atau data lain.|The record will be deactivated. Refused if still used by equipment or other data.|记录将被停用。如仍被设备或其他数据使用则会被拒绝。
+settings.urlMismatch|URL deployment saat ini berbeda dari yang tersimpan: {url}. Jangan ganti bila QR sudah dicetak; gunakan Manage deployments > Edit > New version.|The current deployment URL differs from the saved one: {url}. Do not change it if QR labels are printed; use Manage deployments > Edit > New version.|当前部署网址与已保存的不同：{url}。如已打印二维码请勿更改；请使用 管理部署 > 编辑 > 新版本。
+settings.urlHelp|URL /exec yang dipakai di QR Code. Isi sekali setelah deployment dan jangan diubah.|The /exec URL used in QR Codes. Set once after deployment and keep it unchanged.|二维码使用的 /exec 网址。部署后设置一次，之后请勿更改。
+settings.useDetected|Pakai URL terdeteksi|Use detected URL|使用检测到的网址
+audit.time|Waktu|Time|时间
+audit.action|Aksi|Action|操作
+audit.entity|Objek|Entity|对象
+audit.details|Detail|Details|详情
+audit.result|Hasil|Result|结果
+sys.activeEmail|Email pengguna tersedia dari Google|Google provides user email|Google 提供用户邮箱
+sys.mode|Mode login|Login mode|登录方式
+sys.mailQuota|Sisa kuota email hari ini|Email quota left today|今日剩余邮件额度
+sys.autologin|Login otomatis Google|Google auto-login|Google 自动登录
+sys.note|Pada Gmail pribadi biasanya email pengguna TIDAK tersedia, sehingga login memakai kode OTP email.|With personal Gmail the user email is usually NOT available, so login uses an email OTP code.|个人 Gmail 通常无法获取用户邮箱，因此使用邮件验证码登录。
+role.Admin|Admin|Admin|管理员
+role.Maintenance Manager|Maintenance Manager|Maintenance Manager|维护经理
+role.Supervisor|Supervisor|Supervisor|主管
+role.Technician|Teknisi|Technician|技术员
+role.Viewer|Viewer|Viewer|查看者
+status.Normal|Normal|Normal|正常
+status.Warning|Warning|Warning|警告
+status.Breakdown|Breakdown|Breakdown|故障
+cond.Good|Baik|Good|良好
+cond.Fair|Cukup|Fair|一般
+cond.Poor|Buruk|Poor|较差
+rstatus.Active|Aktif|Active|启用
+rstatus.Inactive|Nonaktif|Inactive|停用
+rstatus.Deleted|Dihapus|Deleted|已删除
+f.EquipmentID|ID Equipment|Equipment ID|设备编号
+f.EquipmentName|Nama equipment|Equipment name|设备名称
+f.CategoryID|Kategori|Category|类别
+f.BuildingID|Gedung|Building|建筑
+f.LocationID|Lokasi|Location|位置
+f.ProductionArea|Area produksi|Production area|生产区域
+f.Brand|Merek|Brand|品牌
+f.Model|Model|Model|型号
+f.SerialNumber|Nomor seri|Serial number|序列号
+f.ElectricalSpec|Spesifikasi kelistrikan|Electrical specification|电气规格
+f.Voltage|Tegangan|Voltage|电压
+f.Current|Arus|Current|电流
+f.PowerRating|Daya|Power rating|额定功率
+f.InstallationDate|Tanggal instalasi|Installation date|安装日期
+f.CommissioningDate|Tanggal commissioning|Commissioning date|投运日期
+f.Condition|Kondisi|Condition|状况
+f.EquipmentStatus|Status operasional|Operational status|运行状态
+f.Notes|Catatan|Notes|备注
+f.FullName|Nama lengkap|Full name|姓名
+f.Email|Email|Email|邮箱
+f.Role|Role|Role|角色
+f.Department|Departemen|Department|部门
+f.Status|Status|Status|状态
+f.FactoryID|Pabrik|Factory|工厂
+f.FactoryName|Nama pabrik|Factory name|工厂名称
+f.BuildingName|Nama gedung|Building name|建筑名称
+f.LocationName|Nama lokasi|Location name|位置名称
+f.CategoryName|Nama kategori|Category name|类别名称
+f.Code|Kode|Code|代码
+f.Description|Deskripsi|Description|说明
+f.Address|Alamat|Address|地址
+f.InspectionType|Tipe inspeksi|Inspection type|巡检类型
+f.COMPANY_NAME|Nama perusahaan|Company name|公司名称
+f.COMPANY_ADDRESS|Alamat perusahaan|Company address|公司地址
+f.DEFAULT_LANGUAGE|Bahasa default|Default language|默认语言
+f.SESSION_DAYS|Masa sesi login (hari)|Login session (days)|登录有效期（天）
+f.ALLOW_GOOGLE_AUTOLOGIN|Izinkan login otomatis Google|Allow Google auto-login|允许 Google 自动登录
+f.WEBAPP_URL|URL web app (untuk QR)|Web app URL (for QR)|Web App 网址（用于二维码）
+f.photo|Foto|Photo|照片
+f.reason|Alasan|Reason|原因
+f.confirmId|Konfirmasi ID|ID confirmation|编号确认
+rule.required|wajib diisi|is required|必填
+rule.invalid|tidak valid|is invalid|无效
+rule.tooLong|terlalu panjang|is too long|过长
+rule.tooLarge|terlalu besar|is too large|过大
+rule.duplicate|sudah ada|already exists|已存在
+rule.notFound|tidak ditemukan|not found|未找到
+rule.stale|Data sudah diubah pengguna lain. Muat ulang lalu coba lagi.|The data was changed by someone else. Reload and try again.|数据已被他人修改，请刷新后重试。
+rule.inUse|Masih dipakai data lain, tidak dapat dihapus.|Still in use by other data and cannot be deleted.|仍被其他数据使用，无法删除。
+rule.lastAdmin|Minimal harus ada satu Admin aktif.|At least one active Admin is required.|至少需要一名启用的管理员。
+rule.selfChange|Anda tidak dapat mengubah role/status/email akun Anda sendiri.|You cannot change your own role/status/email.|您不能修改自己的角色/状态/邮箱。
+rule.mismatch|tidak sesuai|does not match|不匹配
+rule.dateOrder|tidak boleh sebelum tanggal instalasi|cannot be before the installation date|不能早于安装日期
+rule.openWork|Masih ada work order / perbaikan terbuka untuk equipment ini.|There are still open work orders / repairs for this equipment.|该设备仍有未关闭的工单/维修。
+err.AUTH|Sesi berakhir. Silakan masuk kembali.|Session expired. Please sign in again.|会话已过期，请重新登录。
+err.FORBIDDEN|Anda tidak memiliki hak akses untuk tindakan ini.|You do not have permission for this action.|您没有权限执行此操作。
+err.VALIDATION|Data tidak valid.|Invalid data.|数据无效。
+err.NOT_FOUND|Data tidak ditemukan.|Not found.|未找到数据。
+err.CONFLICT|Terjadi konflik data.|Data conflict.|数据冲突。
+err.SERVER|Terjadi kesalahan sistem.|A system error occurred.|系统发生错误。
+err.NETWORK|Tidak dapat terhubung ke server. Periksa koneksi.|Cannot reach the server. Check your connection.|无法连接服务器，请检查网络。
+err.BUSY|Sistem sedang sibuk, coba lagi sebentar.|System busy, please retry shortly.|系统繁忙，请稍后重试。
+err.RATE_LIMIT|Terlalu banyak permintaan kode. Coba lagi dalam 1 jam.|Too many code requests. Try again in 1 hour.|验证码请求过多，请 1 小时后重试。
+err.OTP_INVALID|Kode salah atau kedaluwarsa.|Code is wrong or expired.|验证码错误或已过期。
+err.NOT_SETUP|Database belum disetup.|Database is not set up.|数据库尚未初始化。
+err.MAIL|Gagal mengirim email. Coba lagi nanti.|Failed to send email. Try again later.|邮件发送失败，请稍后重试。
+err.MAIL_QUOTA|Kuota email harian habis. Coba lagi besok.|Daily email quota exhausted. Try again tomorrow.|今日邮件额度已用完，请明天再试。

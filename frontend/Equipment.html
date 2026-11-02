@@ -1,0 +1,218 @@
+<script>
+/* EMMS - Equipment.html : daftar, detail, form, QR, cetak label */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, S = E.S, $ = E.$, $$ = E.$$;
+  var st = { rows: [], f: { search: '', categoryId: '', buildingId: '', locationId: '', equipmentStatus: '', condition: '' }, page: 1, size: 25, sel: {} };
+
+  function qrUrl(id) {
+    var base = S.webAppUrl;
+    return base ? base + '?eq=' + encodeURIComponent(id) : id;
+  }
+  function qrSvg(id) { return window.EMMSQR.svg(qrUrl(id), { margin: 2 }); }
+  function opts(arr, v, l, all) {
+    return (all ? [{ v: '', l: all }] : []).concat(arr.map(function (x) { return { v: x[v], l: x[l] }; }));
+  }
+  function filtered() {
+    var f = st.f, q = f.search.toLowerCase();
+    return st.rows.filter(function (e) {
+      if (f.categoryId && e.CategoryID !== f.categoryId) return false;
+      if (f.buildingId && e.BuildingID !== f.buildingId) return false;
+      if (f.locationId && e.LocationID !== f.locationId) return false;
+      if (f.equipmentStatus && e.EquipmentStatus !== f.equipmentStatus) return false;
+      if (f.condition && e.Condition !== f.condition) return false;
+      if (q && [e.EquipmentID, e.EquipmentName, e.Brand, e.Model, e.SerialNumber, e.CategoryName, e.BuildingName, e.LocationName].join(' ').toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  // ---------------------------------------------------------------- list
+  function render(el, params) {
+    var m = S.master;
+    el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.equipment')) + '</h1><div id="eqtools" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>' +
+      '<div class="toolbar"><input class="grow" id="fq" type="search" placeholder="' + esc(t('eq.searchPh')) + '" value="' + esc(st.f.search) + '">' +
+      '<select class="mini" id="fcat"></select><select class="mini" id="fbld"></select><select class="mini" id="floc"></select><select class="mini" id="fsta"></select></div>' +
+      '<div class="card"><div class="table-wrap"><table><thead><tr><th style="width:30px"><input type="checkbox" id="fall" aria-label="all"></th><th>' + esc(t('f.EquipmentID')) + '</th><th>' + esc(t('f.EquipmentName')) +
+      '</th><th class="hide-sm">' + esc(t('f.CategoryID')) + '</th><th class="hide-sm">' + esc(t('eq.place')) + '</th><th>' + esc(t('f.Condition')) + '</th><th>' + esc(t('f.EquipmentStatus')) + '</th><th></th></tr></thead><tbody id="eqbody"></tbody></table></div></div><div class="pager" id="eqpager"></div>';
+
+    function fill(id, arr, cur) { var s = $(id, el); s.innerHTML = arr.map(function (o) { return '<option value="' + esc(o.v) + '"' + (o.v === cur ? ' selected' : '') + '>' + esc(o.l) + '</option>'; }).join(''); }
+    function fillSelects() {
+      fill('#fcat', opts(m.categories, 'CategoryID', 'CategoryName', t('eq.allCategories')), st.f.categoryId);
+      fill('#fbld', opts(m.buildings, 'BuildingID', 'BuildingName', t('eq.allBuildings')), st.f.buildingId);
+      fill('#floc', opts(m.locations.filter(function (l) { return !st.f.buildingId || l.BuildingID === st.f.buildingId; }), 'LocationID', 'LocationName', t('eq.allLocations')), st.f.locationId);
+      fill('#fsta', [{ v: '', l: t('eq.allStatus') }].concat(['Normal', 'Warning', 'Breakdown'].map(function (s) { return { v: 's:' + s, l: E.tv('status', s) }; }))
+        .concat(['Good', 'Fair', 'Poor'].map(function (s) { return { v: 'c:' + s, l: t('f.Condition') + ': ' + E.tv('cond', s) }; })), st.f.equipmentStatus ? 's:' + st.f.equipmentStatus : (st.f.condition ? 'c:' + st.f.condition : ''));
+    }
+    fillSelects();
+
+    var tools = $('#eqtools', el);
+    tools.appendChild(E.btn(t('eq.printSel'), '', function () {
+      var ids = Object.keys(st.sel).filter(function (k) { return st.sel[k]; });
+      if (!ids.length) { E.toast(t('eq.selectFirst')); return; }
+      printLabels(ids);
+    }, 'qr'));
+    if (E.can('equipment.create')) tools.appendChild(E.btn(t('eq.add'), 'primary', function () { openForm(null); }, 'plus'));
+
+    function draw() {
+      var rows = filtered(), pages = Math.max(1, Math.ceil(rows.length / st.size));
+      if (st.page > pages) st.page = pages;
+      var slice = rows.slice((st.page - 1) * st.size, st.page * st.size);
+      $('#eqbody', el).innerHTML = slice.length ? slice.map(function (e) {
+        return '<tr class="click" data-id="' + esc(e.EquipmentID) + '"><td><input type="checkbox" data-s="' + esc(e.EquipmentID) + '"' + (st.sel[e.EquipmentID] ? ' checked' : '') + '></td><td><b>' + esc(e.EquipmentID) + '</b></td><td>' + esc(e.EquipmentName) +
+          '<div class="sub">' + esc([e.Brand, e.Model].filter(Boolean).join(' · ')) + '</div></td><td class="hide-sm">' + esc(e.CategoryName) + '</td><td class="hide-sm">' + esc(e.BuildingName) + '<div class="sub">' + esc(e.LocationName) +
+          '</div></td><td>' + E.condBadge(e.Condition) + '</td><td>' + E.statusBadge(e.EquipmentStatus) + '</td><td class="actions"><button class="icon-btn" data-qr="' + esc(e.EquipmentID) + '" title="QR">' + E.ic('qr') + '</button></td></tr>';
+      }).join('') : '<tr><td colspan="8" class="empty">' + esc(t('common.noData')) + '</td></tr>';
+      $('#eqpager', el).innerHTML = '<span>' + esc(t('common.count', { n: rows.length })) + '</span><span><button class="btn sm" id="pp"' + (st.page <= 1 ? ' disabled' : '') + '>‹</button> ' + st.page + ' / ' + pages + ' <button class="btn sm" id="pn"' + (st.page >= pages ? ' disabled' : '') + '>›</button></span>';
+      $('#pp', el).onclick = function () { st.page--; draw(); }; $('#pn', el).onclick = function () { st.page++; draw(); };
+      $$('tr.click', el).forEach(function (tr) { tr.onclick = function (ev) { if (ev.target.closest('input,button')) return; openDetail(tr.dataset.id); }; });
+      $$('[data-s]', el).forEach(function (c) { c.onchange = function () { st.sel[c.dataset.s] = c.checked; }; });
+      $$('[data-qr]', el).forEach(function (b) { b.onclick = function () { openDetail(b.dataset.qr, 'qr'); }; });
+    }
+    var tm; $('#fq', el).oninput = function () { var v = this.value; clearTimeout(tm); tm = setTimeout(function () { st.f.search = v.trim(); st.page = 1; draw(); }, 200); };
+    $('#fcat', el).onchange = function () { st.f.categoryId = this.value; st.page = 1; draw(); };
+    $('#fbld', el).onchange = function () { st.f.buildingId = this.value; st.f.locationId = ''; st.page = 1; fillSelects(); draw(); };
+    $('#floc', el).onchange = function () { st.f.locationId = this.value; st.page = 1; draw(); };
+    $('#fsta', el).onchange = function () { var v = this.value; st.f.equipmentStatus = v.indexOf('s:') === 0 ? v.slice(2) : ''; st.f.condition = v.indexOf('c:') === 0 ? v.slice(2) : ''; st.page = 1; draw(); };
+    $('#fall', el).onchange = function () { var on = this.checked; filtered().forEach(function (e) { st.sel[e.EquipmentID] = on; }); draw(); };
+
+    el._reload = function () {
+      return E.api('equipment.list', {}).then(function (rows) { st.rows = rows; draw(); })
+        .catch(function (e) { $('#eqbody', el).innerHTML = '<tr><td colspan="8" class="empty">' + esc(E.errText(e)) + '</td></tr>'; });
+    };
+    st.el = el;
+    el._reload().then(function () { if (params && params.open) openDetail(params.open); });
+  }
+  function reload() { return st.el && st.el.isConnected ? st.el._reload() : Promise.resolve(); }
+
+  // ---------------------------------------------------------------- detail
+  function openDetail(id, tab) {
+    var body = document.createElement('div'); body.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+    var m = E.modal({ title: id, size: 'lg', body: body, footer: [] });
+    E.api('equipment.get', { id: id }).then(function (d) {
+      var e = d.equipment;
+      var tabs = [['info', t('eq.tabInfo')], ['qr', 'QR'], ['hist', t('eq.tabHistory')]].concat(d.audit && d.audit.length ? [['audit', t('eq.tabAudit')]] : []);
+      body.innerHTML = '<div class="hero"><div class="photo" id="eph">' + (e.PhotoFileID ? esc(t('common.loading')) : esc(t('eq.noPhoto'))) + '</div><div><h3>' + esc(e.EquipmentName) + '</h3><div class="meta">' +
+        esc(e.CategoryName) + ' · ' + esc(e.BuildingName) + ' / ' + esc(e.LocationName) + '</div><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + E.statusBadge(e.EquipmentStatus) + E.condBadge(e.Condition) +
+        (e.Status === 'Deleted' ? E.badge('bad', t('rstatus.Deleted')) : '') + '</div></div></div><div class="tabs">' + tabs.map(function (x) { return '<button data-t="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('') + '</div><div id="tabbody"></div>';
+      if (e.PhotoFileID) E.api('equipment.photo', { id: id }).then(function (p) { if (p.dataUrl && $('#eph', body)) $('#eph', body).innerHTML = '<img alt="" src="' + p.dataUrl + '">'; }).catch(function () { $('#eph', body).textContent = '!'; });
+      var rowsF = ['EquipmentID', 'CategoryName', 'BuildingName', 'LocationName', 'ProductionArea', 'Brand', 'Model', 'SerialNumber', 'ElectricalSpec', 'Voltage', 'Current', 'PowerRating', 'InstallationDate', 'CommissioningDate', 'Notes'];
+      var lbl = { CategoryName: 'CategoryID', BuildingName: 'BuildingID', LocationName: 'LocationID' };
+      function show(k) {
+        $$('.tabs button', body).forEach(function (b) { b.classList.toggle('on', b.dataset.t === k); });
+        var tb = $('#tabbody', body);
+        if (k === 'info') {
+          tb.innerHTML = '<dl class="dl">' + rowsF.map(function (f) { return '<div class="' + (f === 'Notes' || f === 'ElectricalSpec' ? 'full' : '') + '"><dt>' + esc(t('f.' + (lbl[f] || f))) + '</dt><dd>' + esc(e[f] || '-') + '</dd></div>'; }).join('') +
+            '<div><dt>' + esc(t('common.updated')) + '</dt><dd>' + esc(E.fmtDT(e.UpdatedAt)) + (e.UpdatedBy ? ' · ' + esc(e.UpdatedBy) : '') + '</dd></div></dl>';
+        } else if (k === 'qr') {
+          var url = qrUrl(id);
+          tb.innerHTML = (S.webAppUrl ? '' : '<div class="notice">' + esc(t('eq.noUrl')) + '</div>') + '<div class="qrbox"><div class="qr">' + qrSvg(id) + '</div><div style="flex:1;min-width:220px"><p style="margin-top:0">' + esc(t('eq.qrHelp')) +
+            '</p><div class="url">' + esc(url) + '</div><p class="muted">v' + (d.qr ? d.qr.Version : 1) + '</p><div style="display:flex;gap:8px;flex-wrap:wrap" id="qrbtn"></div></div></div>';
+          var bb = $('#qrbtn', tb);
+          bb.appendChild(E.btn(t('common.print'), '', function () { printLabels([id]); }, 'print'));
+          bb.appendChild(E.btn('PNG', '', function () { downloadPng(id, e.EquipmentName); }, 'download'));
+          if (E.can('equipment.edit')) bb.appendChild(E.btn(t('eq.regenQr'), '', function () {
+            E.confirmDlg({ title: t('eq.regenQr'), message: t('eq.regenWarn') }).then(function (r) {
+              if (r) E.api('equipment.regenerateQr', { id: id }).then(function () { E.toast(t('common.saved'), 'ok'); m.close(); openDetail(id, 'qr'); }).catch(function (x) { E.toast(E.errText(x), 'err'); });
+            });
+          }, 'refresh'));
+        } else if (k === 'hist') {
+          var h = d.history, any = false, out = '';
+          [['inspections', 'InspectionID', 'InspectionDate', 'OverallResult', 'eq.hInsp'], ['preventive', 'PMID', 'PlannedDate', 'MaintenanceResult', 'eq.hPm'], ['corrective', 'ComplaintNo', 'DateReported', 'ProblemDescription', 'eq.hCm'], ['workOrders', 'WorkOrderID', 'Title', 'Status', 'eq.hWo']].forEach(function (g) {
+            if (!h[g[0]].length) return; any = true;
+            out += '<h4 style="margin:12px 0 6px">' + esc(t(g[4])) + '</h4><table><tbody>' + h[g[0]].map(function (r) { return '<tr><td>' + esc(r[g[1]]) + '</td><td>' + esc(r[g[2]]) + '</td><td>' + esc(r[g[3]]) + '</td><td>' + esc(r.Status) + '</td></tr>'; }).join('') + '</tbody></table>';
+          });
+          tb.innerHTML = any ? out : '<div class="empty">' + esc(t('eq.noHistory')) + '</div>';
+        } else if (k === 'audit') {
+          tb.innerHTML = '<table><tbody>' + d.audit.map(function (a) { return '<tr><td class="sub">' + esc(E.fmtDT(a.EventTime)) + '</td><td>' + esc(a.UserEmail) + '</td><td><b>' + esc(a.Action) + '</b></td></tr>'; }).join('') + '</tbody></table>';
+        }
+      }
+      $$('.tabs button', body).forEach(function (b) { b.onclick = function () { show(b.dataset.t); }; });
+      show(tab || 'info');
+      var foot = m.el.querySelector('.modal-f') || (function () { var f = document.createElement('div'); f.className = 'modal-f'; m.el.querySelector('.modal').appendChild(f); return f; })();
+      if (e.Status === 'Deleted') {
+        if (E.can('equipment.restore')) foot.appendChild(E.btn(t('eq.restore'), 'primary', function () { E.api('equipment.restore', { id: id }).then(function () { m.close(); E.toast(t('common.saved'), 'ok'); reload(); }).catch(function (x) { E.toast(E.errText(x), 'err'); }); }));
+      } else {
+        if (E.can('equipment.delete')) foot.appendChild(E.btn(t('common.delete'), 'danger', function () { del(e, m); }, 'trash'));
+        if (E.can('equipment.edit')) foot.appendChild(E.btn(t('common.edit'), 'primary', function () { m.close(); openForm(e); }, 'edit'));
+      }
+      foot.appendChild(E.btn(t('common.close'), '', m.close));
+    }).catch(function (x) { body.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+  }
+
+  function del(e, parent) {
+    E.confirmDlg({ title: t('eq.deleteTitle'), message: t('eq.deleteMsg', { id: e.EquipmentID }), reason: true, requireText: e.EquipmentID, danger: true, confirmLabel: t('common.delete') }).then(function (r) {
+      if (!r) return;
+      E.api('equipment.delete', { id: e.EquipmentID, reason: r.reason, confirmId: e.EquipmentID }).then(function () { parent.close(); E.toast(t('eq.deleted'), 'ok'); reload(); })
+        .catch(function (x) { E.toast(E.errText(x), 'err'); });
+    });
+  }
+
+  // ---------------------------------------------------------------- form
+  function openForm(e) {
+    var edit = !!e, m0 = S.master, v = e || { Condition: 'Good', EquipmentStatus: 'Normal' }, photoB64 = null;
+    var F = function (n, extra) { return Object.assign({ name: n }, extra || {}); };
+    var catOpts = [{ v: '', l: '—' }].concat(opts(m0.categories, 'CategoryID', 'CategoryName'));
+    var bldOpts = [{ v: '', l: '—' }].concat(opts(m0.buildings, 'BuildingID', 'BuildingName'));
+    var html = '<div class="grid">' + [
+      F('EquipmentName', { required: true, full: true }), F('CategoryID', { type: 'select', options: catOpts, required: true }), F('BuildingID', { type: 'select', options: bldOpts, required: true }),
+      F('LocationID', { type: 'select', options: [], required: true }), F('ProductionArea'), F('Brand'), F('Model'), F('SerialNumber'), F('ElectricalSpec', { full: true, max: 300 }),
+      F('Voltage'), F('Current'), F('PowerRating'), F('InstallationDate', { type: 'date' }), F('CommissioningDate', { type: 'date' }),
+      F('Condition', { type: 'select', options: ['Good', 'Fair', 'Poor'].map(function (x) { return { v: x, l: E.tv('cond', x) }; }) }),
+      F('EquipmentStatus', { type: 'select', options: ['Normal', 'Warning', 'Breakdown'].map(function (x) { return { v: x, l: E.tv('status', x) }; }) }),
+      F('Notes', { type: 'textarea', full: true })
+    ].map(function (f) { return E.fieldHtml(f, v[f.name]); }).join('') +
+      '<div class="field full"><label>' + esc(t('eq.photo')) + '</label><input type="file" id="ephoto" accept="image/*"><div class="ferr"></div><img id="eprev" class="preview" alt="" style="display:none"></div></div>';
+    var save = E.btn(t('common.save'), 'primary', submit);
+    var m = E.modal({ title: edit ? t('eq.edit') + ' ' + e.EquipmentID : t('eq.add'), size: 'lg', sticky: true, body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), save] });
+    var b = m.body, bs = $('[name=BuildingID]', b), ls = $('[name=LocationID]', b);
+    function fillLoc(sel) {
+      var list = m0.locations.filter(function (l) { return l.BuildingID === bs.value; });
+      ls.innerHTML = '<option value="">' + (bs.value && !list.length ? esc(t('eq.noLocations')) : '—') + '</option>' + list.map(function (l) { return '<option value="' + esc(l.LocationID) + '"' + (l.LocationID === sel ? ' selected' : '') + '>' + esc(l.LocationName) + '</option>'; }).join('');
+    }
+    bs.value = v.BuildingID || ''; fillLoc(v.LocationID);
+    bs.onchange = function () { fillLoc(''); };
+    ls.onchange = function () { var l = m0.locations.filter(function (x) { return x.LocationID === ls.value; })[0], pa = $('[name=ProductionArea]', b); if (l && !pa.value) pa.value = l.ProductionArea || ''; };
+    $('#ephoto', b).onchange = function () {
+      var f = this.files[0]; if (!f) { photoB64 = null; $('#eprev', b).style.display = 'none'; return; }
+      E.resizeImage(f).then(function (x) { photoB64 = x; var p = $('#eprev', b); p.src = 'data:image/jpeg;base64,' + x; p.style.display = 'block'; })
+        .catch(function (x) { photoB64 = null; E.toast(E.errText(x), 'err'); });
+    };
+    function submit() {
+      var data = E.readForm(b); delete data.undefined;
+      if (edit) { data.EquipmentID = e.EquipmentID; data.UpdatedAt = e.UpdatedAt; }
+      save.disabled = true;
+      E.api(edit ? 'equipment.update' : 'equipment.create', data).then(function (r) {
+        var id = r.EquipmentID;
+        if (!photoB64) return r;
+        return E.api('equipment.uploadPhoto', { id: id, base64: photoB64 }).then(function () { return r; }, function (x) { E.toast(t('eq.photoFail') + ' ' + E.errText(x), 'err'); return r; });
+      }).then(function () { m.close(); E.toast(t('common.saved'), 'ok'); reload(); })
+        .catch(function (x) { save.disabled = false; if (!E.markErrors(b, x)) E.toast(E.errText(x), 'err'); });
+    }
+  }
+
+  // ---------------------------------------------------------------- QR print / png
+  function printLabels(ids) {
+    var byId = {}; st.rows.forEach(function (r) { byId[r.EquipmentID] = r; });
+    var labels = ids.map(function (id) {
+      var r = byId[id] || { EquipmentID: id, EquipmentName: '', LocationName: '', BuildingName: '' };
+      return '<div class="label"><div class="q">' + qrSvg(id) + '</div><div><b>' + esc(id) + '</b><span>' + esc(r.EquipmentName) + '</span><span>' + esc(r.BuildingName) + ' / ' + esc(r.LocationName) + '</span><small>' + esc(S.settings.COMPANY_NAME || '') + '</small></div></div>';
+    }).join('');
+    var pr = E.btn(t('common.print'), 'primary', function () {
+      document.body.classList.add('printing');
+      var done = function () { document.body.classList.remove('printing'); window.removeEventListener('afterprint', done); };
+      window.addEventListener('afterprint', done);
+      try { window.print(); } catch (x) { done(); E.toast(t('eq.printHint'), 'err'); }
+    }, 'print');
+    E.modal({ title: t('eq.labels'), size: 'lg', body: (S.webAppUrl ? '' : '<div class="notice no-print">' + esc(t('eq.noUrl')) + '</div>') + '<p class="muted no-print">' + esc(t('eq.printHint')) + '</p><div class="label-grid">' + labels + '</div>', footer: [pr] });
+  }
+  function downloadPng(id, name) {
+    try {
+      var c = document.createElement('canvas'); c.width = c.height = 600;
+      window.EMMSQR.drawCanvas(c.getContext('2d'), qrUrl(id), 0, 0, 600, 3);
+      var a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = id + '.png'; document.body.appendChild(a); a.click(); a.remove();
+    } catch (x) { E.toast(t('eq.printHint'), 'err'); }
+  }
+
+  E.pages.equipment = { render: render };
+})();
+</script>
