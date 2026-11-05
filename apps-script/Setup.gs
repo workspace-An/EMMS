@@ -27,6 +27,7 @@ function setupEMMS() {
 
     seedSettings_();
     seedCategories_();
+    seedChecklists_();
     const admin = seedFirstAdmin_();
     DriveSvc.rootFolder_();
 
@@ -110,6 +111,53 @@ function seedCategories_() {
   Db.insertMany('EQUIPMENT_CATEGORIES', rows.map(function (r) {
     return { CategoryName: r[0], Code: r[1], Description: r[2], InspectionType: r[1] };
   }), 'system');
+}
+
+/**
+ * Checklist bawaan per kategori (Phase 2). NILAI BATAS (min/maks) adalah CONTOH awal yang wajar - Maintenance
+ * Manager/Admin harus menyesuaikannya dengan spesifikasi peralatan dan standar perusahaan di menu Inspeksi > Checklist.
+ */
+const CHECKLIST_ITEMS_ = {
+  visual: ['Kondisi visual', 'check'], noise: ['Suara abnormal', 'check'], burnsmell: ['Bau terbakar', 'check', true],
+  cleanliness: ['Kebersihan panel', 'check'], cable: ['Kondisi kabel', 'check'], terminal: ['Kondisi terminal', 'check'],
+  connection: ['Kondisi koneksi', 'check'], indicator: ['Indikator panel', 'check'], protection: ['Kondisi proteksi', 'check'],
+  grounding: ['Kondisi grounding', 'check'], vibration: ['Getaran', 'check'],
+  temperature: ['Temperatur', 'measure', true, '\u00b0C'], voltage: ['Tegangan', 'measure', false, 'V'], current: ['Arus', 'measure', false, 'A'],
+  pf: ['Faktor daya (cos phi)', 'measure', false, ''], freq: ['Frekuensi', 'measure', false, 'Hz'], loadpct: ['Beban', 'measure', false, '%'],
+  groundres: ['Tahanan grounding', 'measure', false, 'Ohm'], lux: ['Intensitas cahaya', 'measure', false, 'lux']
+};
+const CHECKLIST_PLAN_ = {
+  MDP: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 60], ['voltage', 380, 420], 'current'],
+  SDP: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 60], ['voltage', 380, 420], 'current'],
+  MCC: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 60], ['voltage', 380, 420], 'current'],
+  DP: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 60], ['voltage', 380, 420], 'current'],
+  CAP: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 55], ['pf', 0.9, 1], 'current'],
+  TRF: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 90], ['voltage', 380, 420], 'current'],
+  GEN: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 90], ['voltage', 380, 420], ['freq', 49.5, 50.5]],
+  UPS: ['visual', 'noise', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 40], ['voltage', 380, 420], ['loadpct', '', 80]],
+  MTR: ['visual', 'noise', 'vibration', 'burnsmell', 'cleanliness', 'cable', 'terminal', 'connection', 'protection', 'grounding', ['temperature', '', 80], 'current'],
+  CBL: ['visual', 'burnsmell', 'cable', 'terminal', 'connection', 'grounding', ['temperature', '', 60]],
+  GRD: ['visual', 'terminal', 'connection', 'grounding', ['groundres', '', 5]],
+  LTG: ['visual', 'noise', 'cable', 'connection', 'indicator', 'protection', ['lux', 100, '']],
+  PRT: ['visual', 'noise', 'burnsmell', 'cleanliness', 'terminal', 'connection', 'indicator', 'protection', 'grounding', ['temperature', '', 60]]
+};
+
+function seedChecklists_() {
+  if (Db.all('INSPECTION_CHECKLISTS', { includeDeleted: true }).length) return;
+  const cats = {};
+  Db.all('EQUIPMENT_CATEGORIES').forEach(function (c) { cats[c.Code] = c.CategoryID; });
+  const recs = [];
+  Object.keys(CHECKLIST_PLAN_).forEach(function (code) {
+    if (!cats[code]) return;
+    CHECKLIST_PLAN_[code].forEach(function (spec, i) {
+      const key = Array.isArray(spec) ? spec[0] : spec, def = CHECKLIST_ITEMS_[key];
+      recs.push({
+        CategoryID: cats[code], ItemNo: i + 1, ItemKey: key, ItemName: def[0], ItemType: def[1], Unit: def[3] || '',
+        MinValue: Array.isArray(spec) ? spec[1] : '', MaxValue: Array.isArray(spec) ? spec[2] : '', IsCritical: def[2] === true
+      });
+    });
+  });
+  Db.insertMany('INSPECTION_CHECKLISTS', recs, 'system');
 }
 
 function seedFirstAdmin_() {
@@ -334,4 +382,80 @@ function runSelfTest() {
   const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
   Logger.log(failed ? '==== ' + failed + ' UJI GAGAL ====' : '==== SEMUA UJI LULUS (' + results.length + ') ====');
   return results;
+}
+
+/**
+ * Uji Phase 2 pada Sheet SUNGGUHAN (Run dari editor). Membuat equipment uji, lalu membersihkan.
+ * Tidak mengirim email (item uji non-kritis). Hasil muncul di Execution log.
+ */
+function runSelfTestPhase2() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const eq = function (a, b, m) { if (a !== b) throw new Error((m || 'nilai') + ': diharapkan ' + b + ', dapat ' + a); };
+  const admin = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+  let e1 = null; const inspIds = [];
+
+  t('Sheet & kolom Phase 2 lengkap (jalankan setupEMMS() bila gagal)', function () {
+    ['INSPECTION_CHECKLISTS', 'DAILY_INSPECTIONS', 'INSPECTION_RESULTS'].forEach(function (n) {
+      const h = Db.headers(n);
+      Schema.columns(n).forEach(function (c) { if (h.indexOf(c.name) === -1) throw new Error(n + ' kehilangan kolom ' + c.name); });
+    });
+    if (!Db.all('INSPECTION_CHECKLISTS').length) throw new Error('checklist belum di-seed; jalankan setupEMMS()');
+  });
+  t('Buat equipment uji pada kategori ber-checklist', function () {
+    const withCl = {};
+    Db.all('INSPECTION_CHECKLISTS').forEach(function (c) { if (c.Status === 'Active') withCl[c.CategoryID] = true; });
+    const loc = Db.all('LOCATIONS')[0];
+    const cat = Db.all('EQUIPMENT_CATEGORIES').filter(function (c) { return withCl[c.CategoryID]; })[0];
+    if (!cat || !loc) throw new Error('kategori/lokasi tidak ada');
+    e1 = Equipment.create({ EquipmentName: 'ZZTEST Insp', CategoryID: cat.CategoryID, BuildingID: loc.BuildingID, LocationID: loc.LocationID, SerialNumber: 'ZZ-P2', Brand: 'ZZ' }, admin);
+  });
+  const answers = function (ngKey) {
+    const eqr = Db.get('EQUIPMENT', e1.EquipmentID);
+    return Checklist.forCategory(eqr.CategoryID, false).map(function (it) {
+      const a = { ChecklistID: it.ChecklistID, Result: 'OK', MeasurementValue: '', Remarks: '' };
+      if (it.ItemType === 'measure') {
+        a.MeasurementValue = it.MinValue !== '' && it.MaxValue !== '' ? (it.MinValue + it.MaxValue) / 2 : (it.MinValue !== '' ? it.MinValue + 1 : (it.MaxValue !== '' ? it.MaxValue - 1 : 1));
+      }
+      if (ngKey === it.ChecklistID) { a.Result = 'NG'; a.Remarks = 'uji NG'; }
+      return a;
+    });
+  };
+  t('Inspeksi semua OK tersimpan', function () {
+    const r = Inspection.submit({ EquipmentID: e1.EquipmentID, items: answers() }, admin);
+    inspIds.push(r.InspectionID);
+    eq(r.OverallResult, 'OK'); eq(r.Status, 'Completed');
+  });
+  t('NG tanpa rekomendasi ditolak; dengan rekomendasi -> status Open & equipment Warning', function () {
+    const eqr = Db.get('EQUIPMENT', e1.EquipmentID);
+    const item = Checklist.forCategory(eqr.CategoryID, false).filter(function (i) { return i.ItemType === 'check' && i.IsCritical !== true; })[0];
+    if (!item) throw new Error('tidak ada item non-kritis tipe check');
+    try { Inspection.submit({ EquipmentID: e1.EquipmentID, items: answers(item.ChecklistID) }, admin); throw new Error('tidak ditolak'); }
+    catch (e) { if (e.code !== 'VALIDATION') throw e; }
+    const r = Inspection.submit({ EquipmentID: e1.EquipmentID, Recommendation: 'Cek ulang', items: answers(item.ChecklistID) }, admin);
+    inspIds.push(r.InspectionID);
+    eq(r.OverallResult, 'NG'); eq(r.Status, 'Open');
+    eq(Db.get('EQUIPMENT', e1.EquipmentID).EquipmentStatus, 'Warning');
+  });
+  t('Review mengubah status ke Reviewed', function () {
+    Inspection.review({ id: inspIds[1], remarks: 'ok' }, admin);
+    eq(Db.get('DAILY_INSPECTIONS', inspIds[1]).Status, 'Reviewed');
+  });
+  t('Papan hari ini & riwayat memuat inspeksi uji', function () {
+    const b = Inspection.todayStatus({}, admin);
+    if (!b.rows.some(function (r) { return r.EquipmentID === e1.EquipmentID && r.inspectedToday; })) throw new Error('tidak di papan');
+    if (Inspection.list({}, admin).rows.length < 2) throw new Error('riwayat kurang');
+  });
+  t('Bersihkan data uji', function () {
+    Db.where('INSPECTION_RESULTS', function (r) { return inspIds.indexOf(r.InspectionID) !== -1; }).forEach(function (r) { Db.hardDelete('INSPECTION_RESULTS', r.ResultID); });
+    inspIds.forEach(function (id) { Db.hardDelete('DAILY_INSPECTIONS', id); });
+    Equipment.remove({ id: e1.EquipmentID, reason: 'self test', confirmId: e1.EquipmentID }, admin);
+  });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
 }

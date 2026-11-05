@@ -7,7 +7,7 @@
 
 const CFG = {
   APP_NAME: 'EMMS',
-  VERSION: '1.0.0-phase1',
+  VERSION: '1.1.0-phase2',
 
   // Kunci Script Properties
   SS_ID_PROP: 'EMMS_SS_ID',
@@ -45,8 +45,19 @@ const CFG = {
     'users.manage':     ['Admin'],
     'settings.view':    ['Admin', 'Maintenance Manager'],
     'settings.edit':    ['Admin'],
-    'audit.view':       ['Admin', 'Maintenance Manager']
-  }
+    'audit.view':       ['Admin', 'Maintenance Manager'],
+    'inspection.view':   ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
+    'inspection.create': ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'inspection.review': ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'inspection.backdate': ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'checklist.manage':  ['Admin', 'Maintenance Manager']
+  },
+
+  // Kebijakan Phase 2
+  INSPECTION_RESULTS: ['OK', 'NG', 'NA'],
+  BACKDATE_MAX_DAYS: 7,
+  CRITICAL_SETS_BREAKDOWN: true,   // temuan Critical -> status equipment otomatis Breakdown (false = Warning)
+  CRITICAL_ALERT_ROLES: ['Supervisor', 'Maintenance Manager', 'Admin']
 };
 
 /**

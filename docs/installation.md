@@ -44,3 +44,10 @@ Prasyarat: akun Gmail pribadi, komputer dengan Node.js 18+ dan Git. Semua perint
 | "Authorization required" saat run | Ulangi Run dan setujui izin (langkah 3.1) |
 | Perubahan kode tidak terlihat | Deploy > **Manage deployments > Edit (pensil) > Version: New version > Deploy** |
 | Layar putih setelah update | `npm run build && clasp push -f`, lalu deploy versi baru |
+
+## Update dari Phase 1 ke Phase 2
+1. Ganti seluruh kode (clasp push, atau salin file `dist/`).
+2. Jalankan **`setupEMMS()`** sekali lagi: menambah kolom baru & mengisi checklist bawaan (tidak menghapus data).
+3. Jalankan `runSelfTestPhase2()` (harus 7/7).
+4. **Manage deployments > Edit > New version** (jangan buat deployment baru, agar URL /exec dan QR tetap valid).
+5. Sesuaikan batas checklist (menu Inspeksi > Checklist): nilai bawaan hanya contoh.

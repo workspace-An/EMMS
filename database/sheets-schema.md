@@ -16,9 +16,9 @@ Semua sel diformat **teks** dan ditulis sebagai string. Tipe di bawah adalah tip
 | 6 | EQUIPMENT_CATEGORIES | CategoryID | - | Kategori equipment kelistrikan (MDP, SDP, MCC, dst). |
 | 7 | EQUIPMENT | EquipmentID | CategoryID -> EQUIPMENT_CATEGORIES; BuildingID -> BUILDINGS; LocationID -> LOCATIONS; PhotoFileID -> ATTACHMENTS.DriveFileID | Master equipment kelistrikan. EquipmentStatus = Normal/Warning/Breakdown; Condition = Good/Fair/Poor. |
 | 8 | EQUIPMENT_QR_CODES | QRID | EquipmentID -> EQUIPMENT.EquipmentID | Riwayat QR Code tiap equipment (versi). QR hanya berisi URL; gambar dibuat di browser. |
-| 9 | DAILY_INSPECTIONS | InspectionID | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Header inspeksi harian (Phase 2). Status: Draft/Submitted/Reviewed. |
-| 10 | INSPECTION_CHECKLISTS | ChecklistID | CategoryID -> EQUIPMENT_CATEGORIES | Template item checklist per kategori equipment (Phase 2). |
-| 11 | INSPECTION_RESULTS | ResultID | InspectionID -> DAILY_INSPECTIONS; ChecklistID -> INSPECTION_CHECKLISTS | Hasil tiap item checklist (OK/NG/N/A) (Phase 2). |
+| 9 | DAILY_INSPECTIONS | InspectionID | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Header inspeksi harian. OverallResult: OK/NG/Critical. Status: Completed (semua OK) | Open (ada NG, menunggu review) | Reviewed. |
+| 10 | INSPECTION_CHECKLISTS | ChecklistID | CategoryID -> EQUIPMENT_CATEGORIES | Template item checklist per kategori equipment. ItemType: check (OK/NG/N/A) | measure (angka + batas min/maks). ItemKey = kunci terjemahan item bawaan. |
+| 11 | INSPECTION_RESULTS | ResultID | InspectionID -> DAILY_INSPECTIONS; ChecklistID -> INSPECTION_CHECKLISTS | Hasil tiap item checklist: Result OK/NG/NA. Atribut item disalin (snapshot) agar riwayat tetap valid walau checklist diubah. |
 | 12 | PM_SCHEDULES | PMScheduleID | EquipmentID -> EQUIPMENT | Jadwal preventive maintenance (Phase 3). Status: Active/Inactive. |
 | 13 | PREVENTIVE_MAINTENANCE | PMID | PMScheduleID -> PM_SCHEDULES; EquipmentID -> EQUIPMENT | Pelaksanaan PM (Phase 3). |
 | 14 | CORRECTIVE_MAINTENANCE | ComplaintNo | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Completed/Closed. |
@@ -201,7 +201,7 @@ Riwayat QR Code tiap equipment (versi). QR hanya berisi URL; gambar dibuat di br
 
 ## DAILY_INSPECTIONS
 
-Header inspeksi harian (Phase 2). Status: Draft/Submitted/Reviewed.
+Header inspeksi harian. OverallResult: OK/NG/Critical. Status: Completed (semua OK) | Open (ada NG, menunggu review) | Reviewed.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -212,9 +212,14 @@ Header inspeksi harian (Phase 2). Status: Draft/Submitted/Reviewed.
 | TechnicianEmail | text |  |
 | TechnicianName | text |  |
 | OverallResult | text |  |
+| NGCount | number |  |
+| CriticalCount | number |  |
 | Remarks | text |  |
 | Finding | text |  |
 | Recommendation | text |  |
+| ReviewedBy | text |  |
+| ReviewedAt | datetime |  |
+| ReviewRemarks | text |  |
 | WorkOrderID | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
@@ -224,13 +229,14 @@ Header inspeksi harian (Phase 2). Status: Draft/Submitted/Reviewed.
 
 ## INSPECTION_CHECKLISTS
 
-Template item checklist per kategori equipment (Phase 2).
+Template item checklist per kategori equipment. ItemType: check (OK/NG/N/A) | measure (angka + batas min/maks). ItemKey = kunci terjemahan item bawaan.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | ChecklistID | text | Primary key |
 | CategoryID | text |  |
 | ItemNo | number |  |
+| ItemKey | text |  |
 | ItemName | text |  |
 | ItemType | text |  |
 | Unit | text |  |
@@ -245,15 +251,23 @@ Template item checklist per kategori equipment (Phase 2).
 
 ## INSPECTION_RESULTS
 
-Hasil tiap item checklist (OK/NG/N/A) (Phase 2).
+Hasil tiap item checklist: Result OK/NG/NA. Atribut item disalin (snapshot) agar riwayat tetap valid walau checklist diubah.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | ResultID | text | Primary key |
 | InspectionID | text |  |
 | ChecklistID | text |  |
+| ItemNo | number |  |
+| ItemKey | text |  |
+| ItemName | text |  |
+| ItemType | text |  |
+| Unit | text |  |
+| MinValue | number |  |
+| MaxValue | number |  |
+| IsCritical | boolean |  |
 | Result | text |  |
-| MeasurementValue | text |  |
+| MeasurementValue | number |  |
 | Remarks | text |  |
 | PhotoFileID | text |  |
 | CreatedAt | datetime |  |

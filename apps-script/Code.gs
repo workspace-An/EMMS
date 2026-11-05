@@ -85,7 +85,21 @@ function getRoutes_() {
     'settings.update': { perm: 'settings.edit', fn: function (p, u) { return Settings.update(p, u); } },
     'settings.diagnose': { perm: 'settings.edit', fn: function () { return Auth.diagnose(); } },
 
-    'audit.list': { perm: 'audit.view', fn: function (p) { return Audit.list(p); } }
+    'audit.list': { perm: 'audit.view', fn: function (p) { return Audit.list(p); } },
+
+    // --- Phase 2: inspeksi harian & checklist ---
+    'inspection.todayStatus': { perm: 'inspection.view', fn: function (p, u) { return Inspection.todayStatus(p, u); } },
+    'inspection.form': { perm: 'inspection.create', fn: function (p, u) { return Inspection.form(p, u); } },
+    'inspection.submit': { perm: 'inspection.create', fn: function (p, u) { return Inspection.submit(p, u); } },
+    'inspection.uploadPhoto': { perm: 'inspection.create', fn: function (p, u) { return Inspection.uploadPhoto(p, u); } },
+    'inspection.list': { perm: 'inspection.view', fn: function (p, u) { return Inspection.list(p, u); } },
+    'inspection.get': { perm: 'inspection.view', fn: function (p, u) { return Inspection.get(p, u); } },
+    'inspection.photo': { perm: 'inspection.view', fn: function (p) { return Inspection.photo(p); } },
+    'inspection.review': { perm: 'inspection.review', fn: function (p, u) { return Inspection.review(p, u); } },
+    'checklist.list': { perm: 'checklist.manage', fn: function (p) { return Checklist.list(p); } },
+    'checklist.save': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.save(p, u); } },
+    'checklist.delete': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.remove(p, u); } },
+    'checklist.copy': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.copy(p, u); } }
   };
 }
 

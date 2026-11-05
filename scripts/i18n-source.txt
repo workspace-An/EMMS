@@ -198,6 +198,117 @@ err.NETWORK|Tidak dapat terhubung ke server. Periksa koneksi.|Cannot reach the s
 err.BUSY|Sistem sedang sibuk, coba lagi sebentar.|System busy, please retry shortly.|系统繁忙，请稍后重试。
 err.RATE_LIMIT|Terlalu banyak permintaan kode. Coba lagi dalam 1 jam.|Too many code requests. Try again in 1 hour.|验证码请求过多，请 1 小时后重试。
 err.OTP_INVALID|Kode salah atau kedaluwarsa.|Code is wrong or expired.|验证码错误或已过期。
-err.NOT_SETUP|Database belum disetup.|Database is not set up.|数据库尚未初始化。
+err.NOT_SETUP|Database belum disetup atau perlu diperbarui. Jalankan setupEMMS() di Apps Script.|The database is not set up or needs an update. Run setupEMMS() in Apps Script.|数据库尚未初始化或需要更新，请在 Apps Script 中运行 setupEMMS()。
 err.MAIL|Gagal mengirim email. Coba lagi nanti.|Failed to send email. Try again later.|邮件发送失败，请稍后重试。
 err.MAIL_QUOTA|Kuota email harian habis. Coba lagi besok.|Daily email quota exhausted. Try again tomorrow.|今日邮件额度已用完，请明天再试。
+# ---------------- Phase 2: inspeksi
+insp.tabToday|Hari ini|Today|今日
+insp.tabHistory|Riwayat|History|历史
+insp.tabChecklist|Checklist|Checklist|检查清单
+insp.progress|{done} dari {total} equipment sudah diinspeksi hari ini|{done} of {total} equipment inspected today|今日已巡检 {done}/{total} 台设备
+insp.inspect|Inspeksi|Inspect|巡检
+insp.again|Inspeksi lagi|Inspect again|再次巡检
+insp.notYet|Belum|Not yet|未巡检
+insp.noChecklist|Belum ada checklist|No checklist|暂无清单
+insp.filterAll|Semua|All|全部
+insp.onlyPending|Belum diinspeksi|Not inspected|未巡检
+insp.onlyDone|Sudah diinspeksi|Inspected|已巡检
+insp.from|Dari|From|从
+insp.to|Sampai|To|至
+insp.mine|Milik saya|Mine|我的
+insp.allResults|Semua hasil|All results|全部结果
+insp.technician|Teknisi|Technician|技术员
+insp.form|Inspeksi harian|Daily inspection|每日巡检
+insp.time|Jam|Time|时间
+insp.item|Item checklist|Checklist item|清单项目
+insp.todayDone|Hari ini sudah ada {n} inspeksi untuk equipment ini (terakhir: {by} {time}). Anda tetap boleh membuat inspeksi baru.|There are already {n} inspection(s) today for this equipment (last: {by} {time}). You may still create a new one.|该设备今日已有 {n} 次巡检（最近：{by} {time}）。您仍可新建巡检。
+insp.setAllOk|Isi semua yang belum dijawab = OK|Set all unanswered to OK|未填写项全部设为 OK
+insp.rangeBoth|Batas: {min} – {max} {unit}|Limit: {min} – {max} {unit}|范围：{min} – {max} {unit}
+insp.rangeMin|Minimal {min} {unit}|Minimum {min} {unit}|最小 {min} {unit}
+insp.rangeMax|Maksimal {max} {unit}|Maximum {max} {unit}|最大 {max} {unit}
+insp.recordOnly|Hanya dicatat (tanpa batas)|Record only (no limit)|仅记录（无限值）
+insp.value|Nilai ukur|Measured value|测量值
+insp.outOfRange|Di luar batas, otomatis NG|Out of range, set to NG automatically|超出范围，自动判为异常
+insp.remarksNg|Keterangan temuan (wajib)|Finding details (required)|异常说明（必填）
+insp.photo|Foto bukti|Photo evidence|证据照片
+insp.photoTake|Ambil/pilih foto|Take/choose photo|拍照/选择照片
+insp.generalRemarks|Catatan umum|General remarks|总体备注
+insp.summary|NG: {ng} · Kritis: {crit}|NG: {ng} · Critical: {crit}|异常：{ng} · 严重：{crit}
+insp.critMark|Kritis|Critical|严重
+insp.submit|Kirim inspeksi|Submit inspection|提交巡检
+insp.saved|Inspeksi tersimpan|Inspection saved|巡检已保存
+insp.statusAuto|Status equipment otomatis menjadi {status}.|Equipment status automatically set to {status}.|设备状态已自动变更为 {status}。
+insp.criticalSent|TEMUAN KRITIS. Peringatan email terkirim ke {sent} Supervisor/Manager/Admin.|CRITICAL FINDING. Alert email sent to {sent} Supervisor/Manager/Admin.|严重发现。已向 {sent} 位主管/经理/管理员发送邮件提醒。
+insp.criticalFail|TEMUAN KRITIS tersimpan, tetapi email peringatan gagal terkirim. Hubungi supervisor secara langsung!|CRITICAL FINDING saved, but the alert email failed. Contact the supervisor directly!|严重发现已保存，但提醒邮件发送失败。请直接联系主管！
+insp.photoFail|Inspeksi tersimpan, tetapi {n} foto gagal diunggah. Unggah ulang dari detail inspeksi.|Inspection saved, but {n} photo(s) failed to upload. Re-upload from the inspection detail.|巡检已保存，但 {n} 张照片上传失败，请在巡检详情中重新上传。
+insp.detail|Detail inspeksi|Inspection detail|巡检详情
+insp.reviewTitle|Review temuan|Review finding|审核发现
+insp.reviewBtn|Tandai sudah direview|Mark as reviewed|标记为已审核
+insp.reviewedBy|Direview oleh {by} pada {at}|Reviewed by {by} on {at}|由 {by} 于 {at} 审核
+insp.viewPhoto|Lihat foto|View photo|查看照片
+insp.addPhoto|Tambah/ganti foto|Add/replace photo|添加/更换照片
+insp.start|Mulai inspeksi|Start inspection|开始巡检
+insp.backdate|Tanggal inspeksi (maks. {n} hari ke belakang)|Inspection date (up to {n} days back)|巡检日期（最多回溯 {n} 天）
+insp.nextStep|Tindak lanjut Work Order tersedia di Phase 4.|Work Order follow-up arrives in Phase 4.|工单跟进将在第 4 阶段提供。
+ores.OK|OK|OK|正常
+ores.NG|NG|NG|异常
+ores.Critical|Kritis|Critical|严重
+res.OK|OK|OK|OK
+res.NG|NG|NG|NG
+res.NA|N/A|N/A|N/A
+istatus.Completed|Selesai|Completed|已完成
+istatus.Open|Menunggu review|Awaiting review|待审核
+istatus.Reviewed|Sudah direview|Reviewed|已审核
+f.Finding|Temuan|Finding|发现
+f.Recommendation|Tindak lanjut / rekomendasi|Recommendation / follow-up action|后续措施 / 建议
+f.Remarks|Keterangan|Remarks|说明
+f.InspectionDate|Tanggal inspeksi|Inspection date|巡检日期
+f.ReviewRemarks|Catatan review|Review remarks|审核说明
+f.ItemName|Nama item|Item name|项目名称
+f.ItemType|Tipe item|Item type|项目类型
+f.Unit|Satuan|Unit|单位
+f.MinValue|Batas minimum|Minimum limit|最小值
+f.MaxValue|Batas maksimum|Maximum limit|最大值
+f.ItemNo|Nomor urut|Order no.|序号
+f.IsCritical|Item kritis|Critical item|关键项目
+f.MeasurementValue|Nilai ukur|Measured value|测量值
+chk.title|Checklist per kategori|Checklist per category|按类别的检查清单
+chk.category|Kategori equipment|Equipment category|设备类别
+chk.add|Tambah item|Add item|添加项目
+chk.edit|Ubah item|Edit item|编辑项目
+chk.copy|Salin dari kategori lain|Copy from another category|从其他类别复制
+chk.copyDone|{n} item disalin|{n} items copied|已复制 {n} 项
+chk.typeCheck|Pilihan OK / NG / N/A|Choice OK / NG / N/A|选择 OK / NG / N/A
+chk.typeMeasure|Pengukuran (angka)|Measurement (number)|测量（数值）
+chk.empty|Belum ada item checklist untuk kategori ini.|No checklist items for this category yet.|该类别暂无检查项目。
+chk.note|Batas bawaan hanyalah CONTOH. Sesuaikan dengan spesifikasi peralatan dan standar perusahaan Anda. Perubahan tidak mengubah riwayat inspeksi lama.|Default limits are only EXAMPLES. Adjust them to your equipment specifications and company standards. Changes do not alter past inspections.|默认限值仅为示例，请根据设备规格和公司标准调整。修改不会影响历史巡检。
+chk.deleteMsg|Item akan dinonaktifkan dari formulir. Riwayat inspeksi lama tetap utuh.|The item is removed from the form. Past inspections stay intact.|该项目将从表单中移除，历史巡检保持不变。
+chk.copyHelp|Hanya bisa menyalin ke kategori yang belum punya checklist aktif.|You can only copy into a category with no active checklist.|只能复制到尚无启用清单的类别。
+chk.copyFrom|Salin dari|Copy from|复制自
+chk.visual|Kondisi visual|Visual condition|外观状况
+chk.noise|Suara abnormal|Abnormal noise|异常声音
+chk.burnsmell|Bau terbakar|Burning smell|烧焦气味
+chk.cleanliness|Kebersihan panel|Panel cleanliness|柜体清洁
+chk.cable|Kondisi kabel|Cable condition|电缆状况
+chk.terminal|Kondisi terminal|Terminal condition|端子状况
+chk.connection|Kondisi koneksi|Connection condition|连接状况
+chk.indicator|Indikator panel|Panel indicators|面板指示灯
+chk.protection|Kondisi proteksi|Protection condition|保护装置状况
+chk.grounding|Kondisi grounding|Grounding condition|接地状况
+chk.vibration|Getaran|Vibration|振动
+chk.temperature|Temperatur|Temperature|温度
+chk.voltage|Tegangan|Voltage|电压
+chk.current|Arus|Current|电流
+chk.pf|Faktor daya (cos phi)|Power factor (cos phi)|功率因数
+chk.freq|Frekuensi|Frequency|频率
+chk.loadpct|Beban|Load|负载
+chk.groundres|Tahanan grounding|Grounding resistance|接地电阻
+chk.lux|Intensitas cahaya|Light intensity|照度
+dash.ngOpen|Temuan NG belum direview|NG findings awaiting review|待审核异常
+dash.criticalOpen|Temuan kritis terbuka|Open critical findings|未处理严重发现
+rule.ngRemarks|keterangan wajib diisi untuk NG|remarks are required for NG|NG 项必须填写说明
+rule.noChecklist|Kategori equipment ini belum punya checklist aktif. Minta Manager menambahkannya di Inspeksi > Checklist.|This equipment category has no active checklist. Ask a Manager to add one in Inspection > Checklist.|该设备类别尚无启用的清单，请联系经理在 巡检 > 检查清单 中添加。
+rule.notOpen|Hanya inspeksi berstatus "Menunggu review" yang dapat direview.|Only inspections "Awaiting review" can be reviewed.|只有“待审核”的巡检可以审核。
+rule.notEmpty|Kategori tujuan sudah punya checklist aktif.|The target category already has an active checklist.|目标类别已有启用的清单。
+rule.range|batas maksimum harus lebih besar atau sama dengan minimum|maximum must be greater than or equal to minimum|最大值必须不小于最小值
+f.OverallResult|Hasil keseluruhan|Overall result|总体结果

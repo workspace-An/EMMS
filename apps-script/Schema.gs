@@ -63,22 +63,24 @@ const SCHEMA = {
   },
   DAILY_INSPECTIONS: {
     pk: 'InspectionID', prefix: 'INS', tab: '#16a34a',
-    desc: 'Header inspeksi harian (Phase 2). Status: Draft/Submitted/Reviewed.',
+    desc: 'Header inspeksi harian. OverallResult: OK/NG/Critical. Status: Completed (semua OK) | Open (ada NG, menunggu review) | Reviewed.',
     fk: 'EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS',
     cols: ['EquipmentID', 'InspectionDate:d', 'InspectionTime', 'TechnicianEmail', 'TechnicianName', 'OverallResult',
-      'Remarks', 'Finding', 'Recommendation', 'WorkOrderID']
+      'NGCount:n', 'CriticalCount:n', 'Remarks', 'Finding', 'Recommendation', 'ReviewedBy', 'ReviewedAt:dt',
+      'ReviewRemarks', 'WorkOrderID']
   },
   INSPECTION_CHECKLISTS: {
     pk: 'ChecklistID', prefix: 'CHK', tab: '#16a34a',
-    desc: 'Template item checklist per kategori equipment (Phase 2).',
+    desc: 'Template item checklist per kategori equipment. ItemType: check (OK/NG/N/A) | measure (angka + batas min/maks). ItemKey = kunci terjemahan item bawaan.',
     fk: 'CategoryID -> EQUIPMENT_CATEGORIES',
-    cols: ['CategoryID', 'ItemNo:n', 'ItemName', 'ItemType', 'Unit', 'MinValue:n', 'MaxValue:n', 'IsCritical:b']
+    cols: ['CategoryID', 'ItemNo:n', 'ItemKey', 'ItemName', 'ItemType', 'Unit', 'MinValue:n', 'MaxValue:n', 'IsCritical:b']
   },
   INSPECTION_RESULTS: {
     pk: 'ResultID', prefix: 'RES', tab: '#16a34a',
-    desc: 'Hasil tiap item checklist (OK/NG/N/A) (Phase 2).',
+    desc: 'Hasil tiap item checklist: Result OK/NG/NA. Atribut item disalin (snapshot) agar riwayat tetap valid walau checklist diubah.',
     fk: 'InspectionID -> DAILY_INSPECTIONS; ChecklistID -> INSPECTION_CHECKLISTS',
-    cols: ['InspectionID', 'ChecklistID', 'Result', 'MeasurementValue', 'Remarks', 'PhotoFileID']
+    cols: ['InspectionID', 'ChecklistID', 'ItemNo:n', 'ItemKey', 'ItemName', 'ItemType', 'Unit', 'MinValue:n', 'MaxValue:n',
+      'IsCritical:b', 'Result', 'MeasurementValue:n', 'Remarks', 'PhotoFileID']
   },
   PM_SCHEDULES: {
     pk: 'PMScheduleID', prefix: 'PMS', tab: '#f59e0b',

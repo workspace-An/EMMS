@@ -9,3 +9,10 @@
 - **QR Code**: tab QR > Cetak/PNG; centang beberapa baris > *Cetak QR terpilih* untuk lembar label. Tempel di panel; scan dengan kamera HP.
 - **Pengguna** (Admin): tambah email teknisi + role; nonaktifkan untuk mencabut akses seketika.
 - **Pengaturan**: Umum (nama perusahaan, URL QR), Master data (gedung/lokasi/kategori/pabrik), Audit log, Sistem.
+
+## Inspeksi harian (Phase 2)
+- **Hari ini**: daftar equipment, progres, tombol *Inspeksi*. Scan QR > *Mulai inspeksi* juga bisa.
+- Jawab tiap item OK / NG / N/A. Item ukur: isi angka; di luar batas otomatis NG. NG wajib catatan, dan rekomendasi wajib di bawah. Foto opsional per temuan.
+- Temuan kritis otomatis mengirim email ke Supervisor/Manager/Admin dan menandai equipment Breakdown (Warning untuk NG biasa).
+- **Riwayat**: filter, buka detail, Supervisor/Manager/Admin dapat *review* temuan.
+- **Checklist** (Admin/Manager): tambah/ubah/hapus item, tandai kritis, atur batas, salin dari kategori lain. Perubahan tidak mengubah inspeksi lama.

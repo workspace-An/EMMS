@@ -175,8 +175,18 @@ const Db = (function () {
     return def.prefix + '-' + (s.length < 4 ? ('0000' + s).slice(-4) : s);
   }
 
+  /**
+   * Menyusun baris sesuai header sheet. Pengaman migrasi: bila skema punya kolom baru yang belum ada di sheet
+   * (setupEMMS() belum dijalankan ulang setelah update) dan ada nilai untuk kolom itu, tolak - jangan hilangkan diam-diam.
+   */
   function buildRow(name, rec) {
-    return headers(name).map(function (h) { return ser(rec[h]); });
+    const hdr = headers(name);
+    Schema.columns(name).forEach(function (c) {
+      if (hdr.indexOf(c.name) === -1 && rec[c.name] !== undefined && rec[c.name] !== '' && rec[c.name] !== null) {
+        throw new AppError('NOT_SETUP', 'Sheet ' + name + ' belum punya kolom ' + c.name + '. Jalankan setupEMMS() lagi.', { rule: 'migrate', sheet: name, column: c.name });
+      }
+    });
+    return hdr.map(function (h) { return ser(rec[h]); });
   }
 
   function appendRows(name, rows) {

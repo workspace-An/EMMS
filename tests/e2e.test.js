@@ -137,6 +137,100 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     await page.click('.tabs button[data-t=system]'); await page.waitForSelector('#stab .dl');
     assert.ok((await page.textContent('#stab')).includes('EMAIL_OTP'));
   });
+  // ---------------------------------------------------------------- Phase 2
+  const mid = it => (it.MinValue !== '' && it.MaxValue !== '') ? (it.MinValue + it.MaxValue) / 2 : (it.MinValue !== '' ? it.MinValue + 1 : (it.MaxValue !== '' ? it.MaxValue - 1 : 1));
+  async function openInspect(eqId) {
+    await page.click('[data-nav=inspection]'); await page.waitForSelector('#tb tr');
+    await page.fill('#tq', eqId); await page.waitForSelector('#tb [data-i="' + eqId + '"]');
+    await page.click('#tb [data-i="' + eqId + '"]'); await page.waitForSelector('.modal .ci');
+  }
+  function itemsOf(eqId) { const e = ctx.Db.get('EQUIPMENT', eqId); return ctx.Checklist.forCategory(e.CategoryID, false); }
+  async function answerAll(eqId, ng) { // ng: {ChecklistID: 'remarks'}
+    const items = itemsOf(eqId);
+    for (const it of items) {
+      const c = '.ci[data-id="' + it.ChecklistID + '"]';
+      if (it.ItemType === 'measure') await page.fill(c + ' [data-v]', String(mid(it)).replace('.', ','));
+      await page.click(c + ' .seg button[data-r=' + (ng && ng[it.ChecklistID] !== undefined ? 'NG' : 'OK') + ']');
+      if (ng && ng[it.ChecklistID] !== undefined) await page.fill(c + ' [data-rm]', ng[it.ChecklistID]);
+    }
+    return items;
+  }
+  const withCl = () => ctx.Db.all('EQUIPMENT').filter(e => ctx.Checklist.forCategory(e.CategoryID, false).length && e.EquipmentStatus === 'Normal');
+  const E1 = withCl()[0].EquipmentID, E2 = withCl()[1].EquipmentID;
+
+  await t('menu Inspeksi: papan hari ini & progres', async () => {
+    await page.click('[data-nav=inspection]'); await page.waitForSelector('.progress');
+    assert.ok((await page.textContent('#itab')).includes('0 dari'));
+    assert.ok((await page.$$('.tabs button')).length >= 3);
+  });
+  await t('inspeksi semua OK: tombol "semua OK", nilai ukur koma, tersimpan', async () => {
+    await openInspect(E1);
+    for (const it of itemsOf(E1)) if (it.ItemType === 'measure') await page.fill('.ci[data-id="' + it.ChecklistID + '"] [data-v]', String(mid(it)).replace('.', ','));
+    await page.click('#iallok');
+    // item ukur yang sudah diisi otomatis OK
+    await page.click('.modal-f .btn.primary');
+    await page.waitForSelector('.modal .ci', { state: 'detached' });
+    const rows = ctx.Db.all('DAILY_INSPECTIONS').filter(i => i.EquipmentID === E1);
+    assert.strictEqual(rows.length, 1); assert.strictEqual(rows[0].OverallResult, 'OK');
+    await page.waitForSelector('#tb tr'); await page.fill('#tq', E1);
+    assert.ok((await page.textContent('#tb')).includes('OK'));
+  });
+  await t('submit ditolak di klien bila ada item belum dijawab', async () => {
+    await openInspect(E2);
+    await page.click('.modal-f .btn.primary');
+    assert.ok((await page.$$('.ci.invalid')).length > 0);
+    assert.strictEqual(ctx.Db.all('DAILY_INSPECTIONS').filter(i => i.EquipmentID === E2).length, 0);
+  });
+  await t('NG: wajib catatan & rekomendasi; nilai di luar batas otomatis NG', async () => {
+    const items = itemsOf(E2); const meas = items.find(i => i.ItemType === 'measure' && (i.MaxValue !== '' || i.MinValue !== ''));
+    const ngId = items.find(i => i.ItemType === 'check').ChecklistID;
+    const ng = {}; ng[ngId] = '';
+    await answerAll(E2, ng);
+    // paksa nilai ukur keluar batas -> otomatis NG
+    const bad = meas.MaxValue !== '' ? meas.MaxValue + 50 : meas.MinValue - 50;
+    await page.fill('.ci[data-id="' + meas.ChecklistID + '"] [data-v]', String(bad));
+    assert.ok(await page.$('.ci[data-id="' + meas.ChecklistID + '"].ng'), 'tidak otomatis NG');
+    // klik OK pada item di luar batas tidak boleh menjadi OK
+    await page.click('.ci[data-id="' + meas.ChecklistID + '"] .seg button[data-r=OK]');
+    assert.ok(await page.$('.ci[data-id="' + meas.ChecklistID + '"].ng'));
+    await page.click('.modal-f .btn.primary');
+    assert.ok((await page.$$('.ci.invalid')).length >= 1, 'catatan NG wajib');
+    await page.fill('.ci[data-id="' + ngId + '"] [data-rm]', 'Kabel panas'); await page.fill('.ci[data-id="' + meas.ChecklistID + '"] [data-rm]', 'Di luar batas');
+    await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=Recommendation].invalid'), 'rekomendasi wajib');
+    assert.strictEqual(ctx.Db.all('DAILY_INSPECTIONS').filter(i => i.EquipmentID === E2).length, 0);
+    await page.fill('[name=Recommendation]', 'Kencangkan terminal dan ukur ulang');
+    await page.click('.modal-f .btn.primary');
+    await page.waitForSelector('.modal .ci', { state: 'detached' });
+    const r = ctx.Db.all('DAILY_INSPECTIONS').filter(i => i.EquipmentID === E2)[0];
+    assert.ok(r.OverallResult === 'NG' || r.OverallResult === 'Critical'); assert.strictEqual(r.Status, 'Open');
+    assert.notStrictEqual(ctx.Db.get('EQUIPMENT', E2).EquipmentStatus, 'Normal');
+  });
+  await t('riwayat: filter, detail, dan review temuan', async () => {
+    await page.click('.tabs button[data-t=history]'); await page.waitForSelector('#hbody tr[data-id]');
+    assert.ok((await page.$$('#hbody tr[data-id]')).length >= 2);
+    await page.selectOption('#hres', ctx.Db.all('DAILY_INSPECTIONS').find(i => i.EquipmentID === E2).OverallResult);
+    await page.waitForFunction(() => document.querySelectorAll('#hbody tr[data-id]').length === 1);
+    await page.click('#hbody tr[data-id]'); await page.waitForSelector('.modal [name=ReviewRemarks]');
+    await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=ReviewRemarks].invalid'));
+    await page.fill('[name=ReviewRemarks]', 'Sudah ditindaklanjuti'); await page.click('.modal-f .btn.primary');
+    await page.waitForSelector('.modal', { state: 'detached' });
+    assert.strictEqual(ctx.Db.all('DAILY_INSPECTIONS').find(i => i.EquipmentID === E2).Status, 'Reviewed');
+  });
+  await t('tab Checklist (Admin): daftar item & catatan contoh batas', async () => {
+    await page.click('[data-nav=inspection]'); await page.click('.tabs button[data-t=checklist]');
+    await page.waitForSelector('#cbody table tbody tr');
+    assert.ok((await page.textContent('#itab')).includes('CONTOH'));
+  });
+  await t('detail equipment punya tombol Mulai inspeksi', async () => {
+    await page.click('[data-nav=equipment]'); await page.waitForTimeout(600);
+    await page.fill('#fq', ''); await page.waitForTimeout(400);
+    await page.waitForSelector('#eqbody tr.click');
+    await page.click('#eqbody tr.click'); await page.waitForSelector('.modal-f');
+    assert.ok((await page.textContent('.modal-f')).includes('Mulai inspeksi'));
+    await page.keyboard.press('Escape');
+  });
   await t('modul fase berikutnya menampilkan placeholder', async () => {
     await page.click('[data-nav=pm]'); assert.ok((await page.textContent('.content')).includes('Phase 3'));
   });

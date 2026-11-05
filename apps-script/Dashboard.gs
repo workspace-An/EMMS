@@ -29,6 +29,7 @@ const Dashboard = {
     const pm = Db.where('PM_SCHEDULES', function (s) { return s.Status === 'Active' && s.NextDueDate; });
     const cmOpen = Db.where('CORRECTIVE_MAINTENANCE', function (c) { return ['Open', 'In Progress', 'Pending'].indexOf(c.Status) !== -1; });
     const woOpen = Db.where('WORK_ORDERS', function (w) { return ['Closed', 'Cancelled', 'Rejected'].indexOf(w.Status) === -1; });
+    const ngOpen = Db.where('DAILY_INSPECTIONS', function (i) { return i.Status === 'Open'; });
     const k3Open = Db.where('ELECTRICAL_SAFETY', function (s) { return s.Status !== 'Closed'; });
 
     // 12 bulan terakhir (PM selesai + CM dilaporkan)
@@ -51,6 +52,8 @@ const Dashboard = {
         breakdown: byStatus.Breakdown || 0,
         inspectionsToday: inspToday.length,
         notInspected: eq.length - Object.keys(inspected).length,
+        ngOpen: ngOpen.length,
+        criticalOpen: ngOpen.filter(function (i) { return i.OverallResult === 'Critical'; }).length,
         pmUpcoming: pm.filter(function (s) { return s.NextDueDate >= today && s.NextDueDate <= soon; }).length,
         pmOverdue: pm.filter(function (s) { return s.NextDueDate < today; }).length,
         cmActive: cmOpen.length,

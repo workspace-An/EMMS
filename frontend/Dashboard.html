@@ -50,8 +50,9 @@
         var c = d.cards, ch = d.charts;
         var html = '<div class="page-head"><h1>' + esc(t('nav.dashboard')) + '</h1><button class="btn" id="dref">' + E.ic('refresh') + '<span>' + esc(t('common.refresh')) + '</span></button></div>' +
           '<div class="cards">' + card('totalEquipment', 'bolt', '', c.totalEquipment) + card('normal', 'check', 'ok', c.normal) + card('warning', 'shield', 'warn', c.warning) + card('breakdown', 'wrench', 'bad', c.breakdown) + '</div>' +
-          '<div class="cards">' + card('inspectionsToday', 'clipboard', '', c.inspectionsToday, 2) + card('notInspected', 'clipboard', 'warn', c.notInspected, 2) +
-          card('pmUpcoming', 'calendar', '', c.pmUpcoming, 3) + card('pmOverdue', 'calendar', 'bad', c.pmOverdue, 3) +
+          '<div class="cards">' + card('inspectionsToday', 'clipboard', '', c.inspectionsToday) + card('notInspected', 'clipboard', 'warn', c.notInspected) +
+          card('ngOpen', 'shield', c.ngOpen ? 'warn' : '', c.ngOpen) + card('criticalOpen', 'shield', c.criticalOpen ? 'bad' : '', c.criticalOpen) + '</div>' +
+          '<div class="cards">' + card('pmUpcoming', 'calendar', '', c.pmUpcoming, 3) + card('pmOverdue', 'calendar', 'bad', c.pmOverdue, 3) +
           card('cmActive', 'wrench', 'warn', c.cmActive, 4) + card('woOpen', 'file', '', c.woOpen, 4) + card('k3Findings', 'shield', 'bad', c.k3Findings, 5) + '</div>' +
           '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartCondition')) + '</div><div class="card-b">' + donut(ch.condition.labels, ch.condition.values, [GOOD, MID, BAD], 'cond') + '</div></div>' +
           '<div class="card"><div class="card-h">' + esc(t('dash.chartStatus')) + '</div><div class="card-b">' + donut(ch.status.labels, ch.status.values, [GOOD, MID, BAD], 'status') + '</div></div></div>' +
