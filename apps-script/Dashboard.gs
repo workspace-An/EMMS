@@ -35,7 +35,7 @@ const Dashboard = {
     // 12 bulan terakhir (PM selesai + CM dilaporkan)
     const months = [];
     for (let i = 11; i >= 0; i--) months.push(Db.addMonthsKey(-i));
-    const pmDone = countBy(Db.where('PREVENTIVE_MAINTENANCE', function (r) { return r.ActualDate; }), function (r) { return r.ActualDate.slice(0, 7); });
+    const pmDone = countBy(Db.where('PREVENTIVE_MAINTENANCE', function (r) { return r.ActualDate && r.ApprovalStatus !== 'Rejected'; }), function (r) { return r.ActualDate.slice(0, 7); });
     const cmRep = countBy(Db.all('CORRECTIVE_MAINTENANCE'), function (r) { return String(r.DateReported).slice(0, 7); });
 
     const users = {};
@@ -56,6 +56,7 @@ const Dashboard = {
         criticalOpen: ngOpen.filter(function (i) { return i.OverallResult === 'Critical'; }).length,
         pmUpcoming: pm.filter(function (s) { return s.NextDueDate >= today && s.NextDueDate <= soon; }).length,
         pmOverdue: pm.filter(function (s) { return s.NextDueDate < today; }).length,
+        pmAwaiting: Db.where('PREVENTIVE_MAINTENANCE', function (r) { return r.ApprovalStatus === 'Pending'; }).length,
         cmActive: cmOpen.length,
         woOpen: woOpen.length,
         k3Findings: k3Open.length

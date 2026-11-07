@@ -51,3 +51,10 @@ Prasyarat: akun Gmail pribadi, komputer dengan Node.js 18+ dan Git. Semua perint
 3. Jalankan `runSelfTestPhase2()` (harus 7/7).
 4. **Manage deployments > Edit > New version** (jangan buat deployment baru, agar URL /exec dan QR tetap valid).
 5. Sesuaikan batas checklist (menu Inspeksi > Checklist): nilai bawaan hanya contoh.
+
+## Update dari Phase 2 ke Phase 3
+1. Ganti seluruh kode (clasp push / salin `dist/`).
+2. Jalankan **`setupEMMS()`** lagi: menambah kolom PM & pengaturan baru. Akan muncul permintaan izin **Google Calendar**: *Review permissions > Allow*.
+3. Jalankan `runSelfTestPhase3()` (harus 6/6).
+4. **Manage deployments > Edit > New version** (URL /exec tetap).
+5. Pengingat Calendar dibuat di kalender akun pemilik script. Agar teknisi ikut melihat, bagikan kalender itu (Calendar > Settings > Share) atau tunggu notifikasi email Phase 7. Matikan lewat Pengaturan > `PM_CALENDAR_ENABLED`.

@@ -20,7 +20,7 @@ Semua sel diformat **teks** dan ditulis sebagai string. Tipe di bawah adalah tip
 | 10 | INSPECTION_CHECKLISTS | ChecklistID | CategoryID -> EQUIPMENT_CATEGORIES | Template item checklist per kategori equipment. ItemType: check (OK/NG/N/A) | measure (angka + batas min/maks). ItemKey = kunci terjemahan item bawaan. |
 | 11 | INSPECTION_RESULTS | ResultID | InspectionID -> DAILY_INSPECTIONS; ChecklistID -> INSPECTION_CHECKLISTS | Hasil tiap item checklist: Result OK/NG/NA. Atribut item disalin (snapshot) agar riwayat tetap valid walau checklist diubah. |
 | 12 | PM_SCHEDULES | PMScheduleID | EquipmentID -> EQUIPMENT | Jadwal preventive maintenance (Phase 3). Status: Active/Inactive. |
-| 13 | PREVENTIVE_MAINTENANCE | PMID | PMScheduleID -> PM_SCHEDULES; EquipmentID -> EQUIPMENT | Pelaksanaan PM (Phase 3). |
+| 13 | PREVENTIVE_MAINTENANCE | PMID | PMScheduleID -> PM_SCHEDULES; EquipmentID -> EQUIPMENT | Pelaksanaan PM (Phase 3). Status: Completed. ApprovalStatus: Pending/Approved/Rejected. MaintenanceResult: Done/DoneWithFindings/Partial. |
 | 14 | CORRECTIVE_MAINTENANCE | ComplaintNo | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Completed/Closed. |
 | 15 | WORK_ORDERS | WorkOrderID | EquipmentID -> EQUIPMENT; SourceID -> (tabel sesuai SourceType) | Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety. |
 | 16 | WORK_ORDER_TASKS | TaskID | WorkOrderID -> WORK_ORDERS | Rincian tugas dalam Work Order (Phase 4). |
@@ -292,6 +292,7 @@ Jadwal preventive maintenance (Phase 3). Status: Active/Inactive.
 | NextDueDate | date |  |
 | LastDoneDate | date |  |
 | CalendarEventID | text |  |
+| Instructions | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |
@@ -300,24 +301,29 @@ Jadwal preventive maintenance (Phase 3). Status: Active/Inactive.
 
 ## PREVENTIVE_MAINTENANCE
 
-Pelaksanaan PM (Phase 3).
+Pelaksanaan PM (Phase 3). Status: Completed. ApprovalStatus: Pending/Approved/Rejected. MaintenanceResult: Done/DoneWithFindings/Partial.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | PMID | text | Primary key |
 | PMScheduleID | text |  |
 | EquipmentID | text |  |
+| PMTitle | text |  |
 | PlannedDate | date |  |
 | ActualDate | date |  |
 | StartTime | text |  |
 | FinishTime | text |  |
 | Technician | text |  |
+| TechnicianEmail | text |  |
 | MaintenanceResult | text |  |
 | MeasurementBefore | text |  |
 | MeasurementAfter | text |  |
 | PhotoBeforeID | text |  |
 | PhotoAfterID | text |  |
 | ApprovalStatus | text |  |
+| ApprovedBy | text |  |
+| ApprovedAt | datetime |  |
+| ApprovalRemarks | text |  |
 | Remarks | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |

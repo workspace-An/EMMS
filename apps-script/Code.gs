@@ -99,7 +99,20 @@ function getRoutes_() {
     'checklist.list': { perm: 'checklist.manage', fn: function (p) { return Checklist.list(p); } },
     'checklist.save': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.save(p, u); } },
     'checklist.delete': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.remove(p, u); } },
-    'checklist.copy': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.copy(p, u); } }
+    'checklist.copy': { perm: 'checklist.manage', fn: function (p, u) { return Checklist.copy(p, u); } },
+
+    // --- Phase 3: preventive maintenance ---
+    'pm.meta': { perm: 'pm.view', fn: function () { return PM.meta(); } },
+    'pm.schedule.list': { perm: 'pm.view', fn: function (p, u) { return PM.scheduleList(p, u); } },
+    'pm.schedule.save': { perm: 'pm.schedule', fn: function (p, u) { return PM.scheduleSave(p, u); } },
+    'pm.schedule.delete': { perm: 'pm.schedule', fn: function (p, u) { return PM.scheduleDelete(p, u); } },
+    'pm.form': { perm: 'pm.execute', fn: function (p, u) { return PM.form(p, u); } },
+    'pm.complete': { perm: 'pm.execute', fn: function (p, u) { return PM.complete(p, u); } },
+    'pm.uploadPhoto': { perm: 'pm.execute', fn: function (p, u) { return PM.uploadPhoto(p, u); } },
+    'pm.photo': { perm: 'pm.view', fn: function (p) { return PM.photo(p); } },
+    'pm.list': { perm: 'pm.view', fn: function (p, u) { return PM.list(p, u); } },
+    'pm.get': { perm: 'pm.view', fn: function (p, u) { return PM.get(p, u); } },
+    'pm.approve': { perm: 'pm.approve', fn: function (p, u) { return PM.approve(p, u); } }
   };
 }
 

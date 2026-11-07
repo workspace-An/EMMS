@@ -459,3 +459,71 @@ function runSelfTestPhase2() {
   Logger.log(out);
   return out;
 }
+
+/**
+ * Uji Phase 3 pada Sheet & Calendar SUNGGUHAN (Run dari editor). Membuat jadwal PM uji (dan satu event Calendar uji),
+ * lalu membersihkan semuanya. Tidak mengirim email.
+ */
+function runSelfTestPhase3() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const eq = function (a, b, m) { if (a !== b) throw new Error((m || 'nilai') + ': diharapkan ' + b + ', dapat ' + a); };
+  const admin = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+  const other = { email: 'selftest-sup@example.com', name: 'Self Test 2', role: 'Supervisor' };
+  let e1 = null, sch = null, recId = '';
+
+  t('Sheet & kolom Phase 3 lengkap (jalankan setupEMMS() bila gagal)', function () {
+    ['PM_SCHEDULES', 'PREVENTIVE_MAINTENANCE'].forEach(function (n) {
+      const h = Db.headers(n);
+      Schema.columns(n).forEach(function (c) { if (h.indexOf(c.name) === -1) throw new Error(n + ' kehilangan kolom ' + c.name); });
+    });
+  });
+  t('Aritmetika tanggal frekuensi', function () {
+    eq(PMDate.addMonths('2026-01-31', 1), '2026-02-28');
+    eq(PMDate.next('2026-03-01', '2026-06-10', 'Monthly'), '2026-07-01');
+    eq(PMDate.next('2026-03-01', '2026-03-08', 'Weekly'), '2026-03-15');
+  });
+  t('Buat equipment & jadwal uji (event Calendar dibuat)', function () {
+    const cat = Db.all('EQUIPMENT_CATEGORIES')[0], loc = Db.all('LOCATIONS')[0];
+    if (!cat || !loc) throw new Error('kategori/lokasi tidak ada');
+    e1 = Equipment.create({ EquipmentName: 'ZZTEST PM', CategoryID: cat.CategoryID, BuildingID: loc.BuildingID, LocationID: loc.LocationID, SerialNumber: 'ZZ-P3', Brand: 'ZZ' }, admin);
+    sch = PM.scheduleSave({ data: { EquipmentID: e1.EquipmentID, PMTitle: 'ZZTEST PM', Frequency: 'Monthly', StartDate: Db.today() } }, admin);
+    eq(sch.state, 'DueSoon', 'state');
+    if (Cal.enabled() && !sch.hasCalendar) throw new Error('event Calendar tidak terbuat (cek izin Calendar saat Review permissions)');
+  });
+  t('Selesaikan PM: rekaman Pending, jadwal maju, tidak bisa dobel', function () {
+    const r = PM.complete({ PMScheduleID: sch.PMScheduleID, ActualDate: Db.today(), StartTime: '00:00', FinishTime: '00:01', MaintenanceResult: 'Done' }, other);
+    recId = r.PMID;
+    eq(r.ApprovalStatus, 'Pending');
+    if (!(r.NextDueDate > Db.today())) throw new Error('jadwal tidak maju: ' + r.NextDueDate);
+    const s = Db.get('PM_SCHEDULES', sch.PMScheduleID);
+    eq(s.LastDoneDate, Db.today());
+    const advanced = s.NextDueDate;
+    ensureThrows_(function () { Db.update('PM_SCHEDULES', s.PMScheduleID, { NextDueDate: Db.today() }, 'x'); PM.complete({ PMScheduleID: s.PMScheduleID, ActualDate: Db.today(), StartTime: '00:00', FinishTime: '00:01', MaintenanceResult: 'Done' }, other); }, 'CONFLICT');
+    Db.update('PM_SCHEDULES', s.PMScheduleID, { NextDueDate: advanced }, 'x');
+  });
+  t('Pelaksana tidak boleh menyetujui sendiri; Admin boleh', function () {
+    ensureThrows_(function () { PM.approve({ id: recId, decision: 'Approved' }, other); }, 'FORBIDDEN');
+    PM.approve({ id: recId, decision: 'Approved' }, admin);
+    eq(Db.get('PREVENTIVE_MAINTENANCE', recId).ApprovalStatus, 'Approved');
+  });
+  t('Bersihkan data uji (jadwal, event Calendar, rekaman)', function () {
+    PM.scheduleDelete({ id: sch.PMScheduleID }, admin);
+    Db.where('PREVENTIVE_MAINTENANCE', function (r) { return r.PMScheduleID === sch.PMScheduleID; }).forEach(function (r) { Db.hardDelete('PREVENTIVE_MAINTENANCE', r.PMID); });
+    Db.hardDelete('PM_SCHEDULES', sch.PMScheduleID);
+    Equipment.remove({ id: e1.EquipmentID, reason: 'self test', confirmId: e1.EquipmentID }, admin);
+  });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
+}
+
+/** Pembantu uji: fn harus melempar (dengan code tertentu bila diberikan). */
+function ensureThrows_(fn, code) {
+  try { fn(); } catch (e) { if (!code || e.code === code) return; throw new Error('kode error ' + e.code + ' != ' + code); }
+  throw new Error('tidak melempar error');
+}

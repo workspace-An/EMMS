@@ -80,7 +80,7 @@ function tzParts(date, tz) {
 
 function build(opts) {
   opts = opts || {};
-  const state = { props: {}, cache: {}, mails: [], spreadsheets: {}, folders: {}, files: {}, activeUser: opts.activeUser || '', effectiveUser: 'owner@gmail.com' };
+  const state = { props: {}, cache: {}, mails: [], events: [], evSeq: 0, spreadsheets: {}, folders: {}, files: {}, activeUser: opts.activeUser || '', effectiveUser: 'owner@gmail.com' };
   const ctx = {
     console, Date, Math, JSON, Object, Array, String, Number, Error, RegExp, isNaN, parseInt, encodeURIComponent,
     Logger: { log: (m) => { state.log = (state.log || []).concat(String(m)); } },
@@ -112,6 +112,21 @@ function build(opts) {
       getEffectiveUser: () => ({ getEmail: () => state.effectiveUser })
     },
     MailApp: { sendEmail: m => { if (state.mailFail) throw new Error('mail down'); state.mails.push(m); }, getRemainingDailyQuota: () => 90 },
+    CalendarApp: {
+      getDefaultCalendar: () => ({
+        createAllDayEvent: (title, date, o) => {
+          if (state.calFail) throw new Error('calendar down');
+          const ev = { id: 'ev' + (++state.evSeq) + '@google.com', title, date, desc: (o && o.description) || '', deleted: false };
+          state.events.push(ev);
+          return { getId: () => ev.id, setTitle: t => { ev.title = t; }, setAllDayDate: d => { ev.date = d; }, setDescription: d => { ev.desc = d; }, addPopupReminder() {}, deleteEvent: () => { ev.deleted = true; } };
+        },
+        getEventById: id => {
+          const ev = state.events.find(e => e.id === id && !e.deleted);
+          if (!ev) return null;
+          return { getId: () => ev.id, setTitle: t => { ev.title = t; }, setAllDayDate: d => { ev.date = d; }, setDescription: d => { ev.desc = d; }, deleteEvent: () => { ev.deleted = true; } };
+        }
+      })
+    },
     ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/AKfycbTEST123/exec' }) },
     DriveApp: {
       getFoldersByName: n => { const f = state.folders[n]; let used = false; return { hasNext: () => !!f && !used, next: () => { used = true; return f; } }; },
@@ -139,7 +154,7 @@ function build(opts) {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
   const code = files.map(f => '// ==== ' + f + '\n' + fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
   // Ekspos deklarasi top-level (const/class tidak otomatis jadi properti global)
-  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
+  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
   vm.runInContext(code + expose, ctx, { filename: 'emms-all.gs' });
   return ctx;
 }

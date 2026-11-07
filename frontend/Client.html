@@ -36,7 +36,7 @@
   };
   /** terjemahkan nilai enum, mis. tv('status','Normal') -> t('status.Normal') */
   E.tv = function (prefix, v) { if (v === '' || v === null || v === undefined) return ''; var k = prefix + '.' + v; var r = t(k); return r === k ? v : r; };
-  var fieldLabel = E.fieldLabel = function (f) { if (String(f).indexOf('item_') === 0) return t('insp.item'); var k = 'f.' + f; var r = t(k); return r === k ? f : r; };
+  var fieldLabel = E.fieldLabel = function (f) { if (String(f).indexOf('item_') === 0) return t('insp.item'); if (String(f) === 'photo') return t('insp.photo'); var k = 'f.' + f; var r = t(k); return r === k ? f : r; };
 
   E.setLang = function (l, persist) {
     if (!window.I18N[l]) l = 'id';
@@ -306,13 +306,13 @@
   // ------------------------------------------------------------------ Shell + router
   var NAV = [
     { id: 'dashboard', icon: 'dashboard' }, { id: 'equipment', icon: 'bolt' },
-    { id: 'inspection', icon: 'clipboard' }, { id: 'pm', icon: 'calendar', phase: 3 },
+    { id: 'inspection', icon: 'clipboard' }, { id: 'pm', icon: 'calendar' },
     { id: 'cm', icon: 'wrench', phase: 4 }, { id: 'wo', icon: 'file', phase: 4 },
     { id: 'safety', icon: 'shield', phase: 5 }, { id: 'inventory', icon: 'box', phase: 6 },
     { id: 'reports', icon: 'chart', phase: 8 }, { sep: true },
     { id: 'users', icon: 'users', perm: 'users.view' }, { id: 'settings', icon: 'gear', perm: 'settings.view' }
   ];
-  E.PHASE_FOR = { pm: 3, cm: 4, wo: 4, safety: 5, inventory: 6, reports: 8 };
+  E.PHASE_FOR = { cm: 4, wo: 4, safety: 5, inventory: 6, reports: 8 };
 
   function renderShell() {
     var u = S.user;

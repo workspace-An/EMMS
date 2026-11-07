@@ -231,8 +231,53 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     assert.ok((await page.textContent('.modal-f')).includes('Mulai inspeksi'));
     await page.keyboard.press('Escape');
   });
+  // ---------------------------------------------------------------- Phase 3
+  await t('menu PM: 3 tab untuk Admin, daftar kerja kosong', async () => {
+    await page.click('[data-nav=pm]'); await page.waitForSelector('#wb tr');
+    assert.strictEqual((await page.$$('.tabs button')).length, 3);
+    assert.ok((await page.textContent('#wb')).includes('Tidak ada PM'));
+  });
+  await t('buat jadwal PM lewat form (Custom menampilkan interval) + event Calendar', async () => {
+    await page.click('.tabs button[data-t=schedule]'); await page.waitForSelector('#stools button');
+    await page.click('#stools button'); await page.waitForSelector('.modal [name=PMTitle]');
+    await page.selectOption('[name=EquipmentID]', E1); await page.fill('[name=PMTitle]', 'Kencangkan terminal');
+    assert.strictEqual(await page.isVisible('.field[data-f=ScheduleRule]'), false);
+    await page.selectOption('[name=Frequency]', 'Custom'); assert.ok(await page.isVisible('.field[data-f=ScheduleRule]'));
+    await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=ScheduleRule].invalid'), 'interval custom wajib');
+    await page.fill('[name=ScheduleRule]', '30'); await page.click('.modal-f .btn.primary');
+    await page.waitForSelector('.modal', { state: 'detached' });
+    assert.strictEqual(ctx.Db.all('PM_SCHEDULES').length, 1);
+    assert.ok(ctx.__state.events.some(e => !e.deleted && e.title.includes('Kencangkan terminal')));
+  });
+  await t('daftar kerja: jadwal hari ini muncul; kerjakan PM (validasi jam) dan tersimpan Pending', async () => {
+    await page.click('.tabs button[data-t=work]'); await page.waitForSelector('#wb [data-x]');
+    await page.click('#wb [data-x]'); await page.waitForSelector('.modal [name=StartTime]');
+    await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=StartTime].invalid'), 'jam mulai wajib');
+    await page.fill('[name=StartTime]', '00:01'); await page.selectOption('[name=MaintenanceResult]', 'Partial');
+    await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=Remarks].invalid'), 'catatan wajib bila Partial');
+    await page.selectOption('[name=MaintenanceResult]', 'Done'); await page.fill('[name=MeasurementBefore]', 'Torsi 8 Nm');
+    await page.click('.modal-f .btn.primary');
+    await page.waitForSelector('.modal', { state: 'detached' });
+    const rec = ctx.Db.all('PREVENTIVE_MAINTENANCE'); assert.strictEqual(rec.length, 1); assert.strictEqual(rec[0].ApprovalStatus, 'Pending');
+    assert.ok(ctx.Db.all('PM_SCHEDULES')[0].NextDueDate > ctx.Db.today());
+  });
+  await t('riwayat PM: buka detail dan setujui (Admin)', async () => {
+    await page.click('.tabs button[data-t=history]'); await page.waitForSelector('#hbody tr[data-id]');
+    await page.click('#hbody tr[data-id]'); await page.waitForSelector('.modal .btn.primary');
+    assert.ok((await page.textContent('.modal')).includes('Torsi 8 Nm'));
+    await page.click('.modal-f .btn.primary'); await page.waitForSelector('.modal', { state: 'detached' });
+    assert.strictEqual(ctx.Db.all('PREVENTIVE_MAINTENANCE')[0].ApprovalStatus, 'Approved');
+  });
+  await t('dashboard menampilkan kartu PM tanpa label fase', async () => {
+    await page.click('[data-nav=dashboard]'); await page.waitForSelector('.stat .v');
+    const txt = await page.textContent('.content');
+    assert.ok(txt.includes('menunggu approval') || txt.includes('PM menunggu')); assert.ok(!/PM 7 hari ke depan\s*Phase/.test(txt));
+  });
   await t('modul fase berikutnya menampilkan placeholder', async () => {
-    await page.click('[data-nav=pm]'); assert.ok((await page.textContent('.content')).includes('Phase 3'));
+    await page.click('[data-nav=cm]'); assert.ok((await page.textContent('.content')).includes('Phase 4'));
   });
   await t('tampilan HP (375px): menu geser & tanpa scroll horizontal halaman', async () => {
     await page.setViewportSize({ width: 375, height: 760 });

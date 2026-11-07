@@ -66,7 +66,7 @@
       var warn = d.detectedUrl && v.WEBAPP_URL && d.detectedUrl !== v.WEBAPP_URL ? '<div class="notice">' + esc(t('settings.urlMismatch', { url: d.detectedUrl })) + '</div>' : '';
       box.innerHTML = warn + '<div class="card"><div class="card-b"><div class="grid">' + [
         { name: 'COMPANY_NAME', required: true, full: true }, { name: 'COMPANY_ADDRESS', full: true }, { name: 'DEFAULT_LANGUAGE', type: 'select', options: langs },
-        { name: 'SESSION_DAYS', inputmode: 'numeric' }, { name: 'ALLOW_GOOGLE_AUTOLOGIN', type: 'select', options: tf }, { name: 'WEBAPP_URL', full: true, max: 300 }
+        { name: 'SESSION_DAYS', inputmode: 'numeric' }, { name: 'ALLOW_GOOGLE_AUTOLOGIN', type: 'select', options: tf }, { name: 'PM_LEAD_DAYS', inputmode: 'numeric' }, { name: 'PM_CALENDAR_ENABLED', type: 'select', options: tf }, { name: 'WEBAPP_URL', full: true, max: 300 }
       ].map(function (f) { if (!edit) f.readonly = f.disabled = true; return E.fieldHtml(f, v[f.name]); }).join('') + '</div><p class="muted">' + esc(t('settings.urlHelp')) + (d.detectedUrl && !v.WEBAPP_URL ? ' <a id="useurl" style="color:var(--blue);cursor:pointer">' + esc(t('settings.useDetected')) + '</a>' : '') + '</p><div id="sgbtn"></div></div></div>';
       if ($('#useurl', box)) $('#useurl', box).onclick = function () { $('[name=WEBAPP_URL]', box).value = d.detectedUrl; };
       if (edit) {

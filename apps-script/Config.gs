@@ -7,7 +7,7 @@
 
 const CFG = {
   APP_NAME: 'EMMS',
-  VERSION: '1.1.0-phase2',
+  VERSION: '1.2.0-phase3',
 
   // Kunci Script Properties
   SS_ID_PROP: 'EMMS_SS_ID',
@@ -50,14 +50,24 @@ const CFG = {
     'inspection.create': ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
     'inspection.review': ['Admin', 'Maintenance Manager', 'Supervisor'],
     'inspection.backdate': ['Admin', 'Maintenance Manager', 'Supervisor'],
-    'checklist.manage':  ['Admin', 'Maintenance Manager']
+    'checklist.manage':  ['Admin', 'Maintenance Manager'],
+    'pm.view':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
+    'pm.execute':       ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'pm.schedule':      ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'pm.approve':       ['Admin', 'Maintenance Manager', 'Supervisor']
   },
 
   // Kebijakan Phase 2
   INSPECTION_RESULTS: ['OK', 'NG', 'NA'],
   BACKDATE_MAX_DAYS: 7,
   CRITICAL_SETS_BREAKDOWN: true,   // temuan Critical -> status equipment otomatis Breakdown (false = Warning)
-  CRITICAL_ALERT_ROLES: ['Supervisor', 'Maintenance Manager', 'Admin']
+  CRITICAL_ALERT_ROLES: ['Supervisor', 'Maintenance Manager', 'Admin'],
+
+  // Kebijakan Phase 3
+  PM_FREQUENCIES: ['Weekly', 'Monthly', 'Quarterly', 'Semiannual', 'Yearly', 'Custom'],
+  PM_RESULTS: ['Done', 'DoneWithFindings', 'Partial'],
+  PM_BACKDATE_MAX_DAYS: 7,
+  PM_DEFAULT_LEAD_DAYS: 7
 };
 
 /**

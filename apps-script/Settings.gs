@@ -10,10 +10,12 @@ const Settings = {
     { key: 'WEBAPP_URL', value: '', desc: 'URL web app (/exec) yang dipakai di QR Code. Jangan diubah setelah QR dicetak.', cat: 'QR', pub: true },
     { key: 'ALLOW_GOOGLE_AUTOLOGIN', value: 'TRUE', desc: 'Izinkan login otomatis bila Google menyediakan email pengguna', cat: 'Security', pub: false },
     { key: 'SESSION_DAYS', value: '30', desc: 'Masa berlaku sesi login (hari)', cat: 'Security', pub: false },
+    { key: 'PM_LEAD_DAYS', value: '7', desc: 'PM dianggap "segera jatuh tempo" N hari sebelum tanggalnya', cat: 'PM', pub: true },
+    { key: 'PM_CALENDAR_ENABLED', value: 'TRUE', desc: 'Buat pengingat PM di Google Calendar milik pemilik script', cat: 'PM', pub: false },
     { key: 'SCHEMA_VERSION', value: '1', desc: 'Versi skema database', cat: 'System', pub: false }
   ],
 
-  EDITABLE: ['COMPANY_NAME', 'COMPANY_ADDRESS', 'DEFAULT_LANGUAGE', 'WEBAPP_URL', 'ALLOW_GOOGLE_AUTOLOGIN', 'SESSION_DAYS'],
+  EDITABLE: ['COMPANY_NAME', 'COMPANY_ADDRESS', 'DEFAULT_LANGUAGE', 'WEBAPP_URL', 'ALLOW_GOOGLE_AUTOLOGIN', 'SESSION_DAYS', 'PM_LEAD_DAYS', 'PM_CALENDAR_ENABLED'],
 
   get: function (key, fallback) {
     const r = Db.get('SETTINGS', key);
@@ -67,6 +69,8 @@ const Settings = {
       if (k === 'WEBAPP_URL' && v && !/^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(v)) errors.push({ field: k, rule: 'invalid' });
       if (k === 'ALLOW_GOOGLE_AUTOLOGIN') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'SESSION_DAYS') { const n = Number(v); if (!(n >= 1 && n <= 90)) errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'PM_LEAD_DAYS') { const n = Number(v); if (!(v !== '' && n >= 0 && n <= 60 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'PM_CALENDAR_ENABLED') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
       clean[k] = v;
     });
     if (errors.length) throw validationError_(errors);

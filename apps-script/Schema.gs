@@ -87,14 +87,15 @@ const SCHEMA = {
     desc: 'Jadwal preventive maintenance (Phase 3). Status: Active/Inactive.',
     fk: 'EquipmentID -> EQUIPMENT',
     cols: ['EquipmentID', 'PMTitle', 'Frequency', 'ScheduleRule', 'AssignedTechnician', 'StartDate:d', 'NextDueDate:d',
-      'LastDoneDate:d', 'CalendarEventID']
+      'LastDoneDate:d', 'CalendarEventID', 'Instructions']
   },
   PREVENTIVE_MAINTENANCE: {
     pk: 'PMID', prefix: 'PM', tab: '#f59e0b',
-    desc: 'Pelaksanaan PM (Phase 3).',
+    desc: 'Pelaksanaan PM (Phase 3). Status: Completed. ApprovalStatus: Pending/Approved/Rejected. MaintenanceResult: Done/DoneWithFindings/Partial.',
     fk: 'PMScheduleID -> PM_SCHEDULES; EquipmentID -> EQUIPMENT',
-    cols: ['PMScheduleID', 'EquipmentID', 'PlannedDate:d', 'ActualDate:d', 'StartTime', 'FinishTime', 'Technician',
-      'MaintenanceResult', 'MeasurementBefore', 'MeasurementAfter', 'PhotoBeforeID', 'PhotoAfterID', 'ApprovalStatus', 'Remarks']
+    cols: ['PMScheduleID', 'EquipmentID', 'PMTitle', 'PlannedDate:d', 'ActualDate:d', 'StartTime', 'FinishTime', 'Technician',
+      'TechnicianEmail', 'MaintenanceResult', 'MeasurementBefore', 'MeasurementAfter', 'PhotoBeforeID', 'PhotoAfterID',
+      'ApprovalStatus', 'ApprovedBy', 'ApprovedAt:dt', 'ApprovalRemarks', 'Remarks']
   },
   CORRECTIVE_MAINTENANCE: {
     pk: 'ComplaintNo', prefix: 'CM', tab: '#ef4444',

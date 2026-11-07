@@ -312,3 +312,83 @@ rule.notOpen|Hanya inspeksi berstatus "Menunggu review" yang dapat direview.|Onl
 rule.notEmpty|Kategori tujuan sudah punya checklist aktif.|The target category already has an active checklist.|目标类别已有启用的清单。
 rule.range|batas maksimum harus lebih besar atau sama dengan minimum|maximum must be greater than or equal to minimum|最大值必须不小于最小值
 f.OverallResult|Hasil keseluruhan|Overall result|总体结果
+status.Active|Aktif|Active|启用
+status.Inactive|Nonaktif|Inactive|停用
+pm.tabWork|Daftar kerja|Work list|工作清单
+pm.tabSchedule|Jadwal PM|PM schedules|PM 计划
+pm.tabHistory|Riwayat & approval|History & approval|历史与审批
+pm.fAll|Semua|All|全部
+pm.fOverdue|Terlambat|Overdue|逾期
+pm.fSoon|Segera jatuh tempo|Due soon|即将到期
+pm.fMine|Milik saya|Mine|我的
+pm.state.Overdue|Terlambat|Overdue|逾期
+pm.state.DueSoon|Segera|Due soon|即将到期
+pm.state.Scheduled|Terjadwal|Scheduled|已计划
+pm.state.Inactive|Nonaktif|Inactive|停用
+pm.daysLate|Terlambat {n} hari|{n} day(s) late|逾期 {n} 天
+pm.daysLeft|{n} hari lagi|in {n} day(s)|还有 {n} 天
+pm.dueToday|Jatuh tempo hari ini|Due today|今天到期
+pm.do|Kerjakan|Perform|执行
+pm.formTitle|Pelaksanaan PM|Perform PM|执行 PM
+pm.instructions|Instruksi kerja|Work instructions|作业说明
+pm.addSchedule|Tambah jadwal|Add schedule|新增计划
+pm.editSchedule|Ubah jadwal PM|Edit PM schedule|编辑 PM 计划
+pm.deleteMsg|Jadwal dihapus dan pengingat Calendar dibatalkan. Riwayat PM yang sudah dikerjakan tetap tersimpan.|The schedule is deleted and its Calendar reminder removed. Completed PM history is kept.|计划将被删除并取消日历提醒。已完成的 PM 历史会保留。
+pm.calendarNote|Pengingat dibuat di Google Calendar milik pemilik aplikasi, bukan di kalender masing-masing teknisi. Notifikasi email otomatis datang di Phase 7.|Reminders are created in the app owner's Google Calendar, not in each technician's calendar. Automatic email notifications arrive in Phase 7.|提醒创建在应用所有者的 Google 日历中，而非每位技术员的日历。自动邮件通知将在第 7 阶段提供。
+pm.noTech|(belum ditentukan)|(unassigned)|（未指派）
+pm.every|Setiap {n} hari|Every {n} days|每 {n} 天
+pm.freq.Weekly|Mingguan|Weekly|每周
+pm.freq.Monthly|Bulanan|Monthly|每月
+pm.freq.Quarterly|3 bulanan|Quarterly|每季度
+pm.freq.Semiannual|6 bulanan|Semiannual|每半年
+pm.freq.Yearly|Tahunan|Yearly|每年
+pm.freq.Custom|Interval hari tertentu|Custom interval (days)|自定义天数
+pm.res.Done|Selesai, normal|Done, normal|完成，正常
+pm.res.DoneWithFindings|Selesai, ada temuan|Done, with findings|完成，有发现
+pm.res.Partial|Sebagian / belum tuntas|Partial / incomplete|部分完成
+pm.photoBefore|Foto sebelum|Photo before|作业前照片
+pm.photoAfter|Foto sesudah|Photo after|作业后照片
+pm.saved|PM tersimpan dan menunggu approval. Jadwal berikutnya: {date}.|PM saved and awaiting approval. Next due: {date}.|PM 已保存，等待审批。下次到期：{date}。
+pm.photoFail|PM tersimpan, tetapi {n} foto gagal diunggah. Unggah ulang dari detail PM.|PM saved, but {n} photo(s) failed to upload. Re-upload from the PM detail.|PM 已保存，但 {n} 张照片上传失败。请在 PM 详情中重新上传。
+pm.detail|Detail PM|PM detail|PM 详情
+pm.apr.Pending|Menunggu approval|Awaiting approval|待审批
+pm.apr.Approved|Disetujui|Approved|已批准
+pm.apr.Rejected|Ditolak|Rejected|已驳回
+pm.allApproval|Semua status approval|All approval statuses|全部审批状态
+pm.approve|Setujui|Approve|批准
+pm.reject|Tolak|Reject|驳回
+pm.decisionTitle|Keputusan approval|Approval decision|审批决定
+pm.approvedBy|{by} pada {at}|{by} on {at}|{by}，{at}
+pm.rejectNote|Bila ditolak, PM kembali muncul di daftar kerja untuk dikerjakan ulang.|If rejected, the PM returns to the work list to be redone.|驳回后，PM 将回到工作清单重新执行。
+pm.selfNote|Anda tidak dapat menyetujui PM yang Anda kerjakan sendiri.|You cannot approve a PM you performed yourself.|您不能批准自己执行的 PM。
+pm.viewPhoto|Lihat foto|View photo|查看照片
+pm.addPhoto|Tambah/ganti foto|Add/replace photo|添加/更换照片
+pm.next|Jatuh tempo berikutnya|Next due|下次到期
+pm.noWork|Tidak ada PM yang perlu dikerjakan.|No PM to perform.|没有需要执行的 PM。
+f.PMTitle|Judul PM|PM title|PM 标题
+f.Frequency|Frekuensi|Frequency|频率
+f.ScheduleRule|Interval (hari)|Interval (days)|间隔（天）
+f.AssignedTechnician|Teknisi penanggung jawab|Assigned technician|负责技术员
+f.StartDate|Tanggal mulai|Start date|开始日期
+f.NextDueDate|Jatuh tempo berikutnya|Next due date|下次到期日
+f.LastDoneDate|Terakhir dikerjakan|Last done|上次完成
+f.Instructions|Instruksi kerja|Work instructions|作业说明
+f.ActualDate|Tanggal pelaksanaan|Actual date|实际日期
+f.StartTime|Jam mulai|Start time|开始时间
+f.FinishTime|Jam selesai|Finish time|结束时间
+f.MaintenanceResult|Hasil pekerjaan|Result|结果
+f.MeasurementBefore|Pengukuran sebelum|Measurement before|作业前测量
+f.MeasurementAfter|Pengukuran sesudah|Measurement after|作业后测量
+f.ApprovalStatus|Approval|Approval|审批
+f.ApprovalRemarks|Catatan approval|Approval remarks|审批备注
+f.PlannedDate|Jatuh tempo (rencana)|Planned date|计划日期
+f.PM_LEAD_DAYS|PM segera jatuh tempo (hari sebelum)|PM "due soon" window (days)|PM「即将到期」天数
+f.PM_CALENDAR_ENABLED|Buat pengingat Google Calendar|Create Google Calendar reminders|创建 Google 日历提醒
+rule.timeOrder|jam selesai tidak boleh sebelum jam mulai|finish time cannot be before start time|结束时间不能早于开始时间
+rule.future|tidak boleh di masa depan|cannot be in the future|不能是未来时间
+rule.alreadyDone|PM jatuh tempo ini sudah dikerjakan|this PM occurrence is already done|此次 PM 已完成
+rule.inactive|jadwal tidak aktif|schedule is inactive|计划已停用
+rule.selfApprove|tidak boleh menyetujui pekerjaan sendiri|you cannot approve your own work|不能批准自己的工作
+rule.notPending|sudah diputuskan|already decided|已做出决定
+rule.locked|sudah disetujui, tidak dapat diubah|already approved, cannot be changed|已批准，无法更改
+dash.pmAwaiting|PM menunggu approval|PM awaiting approval|待审批 PM

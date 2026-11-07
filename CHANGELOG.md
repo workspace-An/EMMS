@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0-phase3 - Preventive Maintenance
+- Menu **PM**: Daftar kerja (terlambat / segera / milik saya, tombol Kerjakan), Jadwal PM (Admin/Manager/Supervisor), Riwayat & approval.
+- Jadwal: frekuensi Mingguan, Bulanan, 3 bulanan, 6 bulanan, Tahunan, atau interval hari kustom; teknisi penanggung jawab; instruksi kerja; aktif/nonaktif.
+- Pelaksanaan: tanggal (maks 7 hari ke belakang), jam mulai/selesai, hasil (Selesai / Selesai dengan temuan / Sebagian), ukur sebelum-sesudah, catatan (wajib bila bukan "Selesai"), foto sebelum & sesudah.
+- Jatuh tempo berikutnya dimajukan dari tanggal jatuh tempo (tidak bergeser); periode terlewat dilompati. Satu jatuh tempo hanya bisa diselesaikan sekali.
+- Approval Supervisor/Manager/Admin: Setujui atau Tolak (alasan wajib). Tolak mengembalikan jadwal ke jatuh tempo semula. Pelaksana tidak bisa menyetujui pekerjaannya sendiri (Admin dikecualikan, tercatat di audit). Foto terkunci setelah disetujui.
+- Pengingat **Google Calendar** (event seharian di kalender pemilik script, otomatis dibuat/diubah/dihapus). Kegagalan Calendar tidak menggagalkan penyimpanan.
+- Dashboard: kartu PM menunggu approval; kartu PM tanpa label fase; grafik PM selesai tidak menghitung yang ditolak.
+- Pengaturan baru: `PM_LEAD_DAYS` (default 7), `PM_CALENDAR_ENABLED` (default TRUE).
+- Skema: kolom baru PM_SCHEDULES.Instructions; PREVENTIVE_MAINTENANCE.PMTitle/TechnicianEmail/ApprovedBy/ApprovedAt/ApprovalRemarks. **Jalankan ulang `setupEMMS()` setelah update.** Izin Calendar akan diminta saat otorisasi ulang.
+- Uji: backend 85 + 28 + 23 (Phase 3), E2E 29, `runSelfTestPhase3()` di Apps Script. Perbaikan kecil: label status Aktif/Nonaktif kini diterjemahkan.
+
 ## 1.1.0-phase2 - Inspeksi Harian Listrik
 - Menu **Inspeksi**: papan "hari ini" (progres, filter, tombol Inspeksi), riwayat (filter tanggal/hasil/milik saya, detail, review), kelola checklist per kategori (Admin/Manager).
 - Formulir inspeksi: OK/NG/N/A, nilai ukur (koma desimal diterima), nilai di luar batas otomatis NG, catatan wajib untuk NG, rekomendasi wajib bila ada NG, foto per temuan NG (diperkecil di browser, disimpan di Drive), tanggal mundur maks 7 hari hanya Supervisor+.

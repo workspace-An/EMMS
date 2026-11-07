@@ -16,3 +16,9 @@
 - Temuan kritis otomatis mengirim email ke Supervisor/Manager/Admin dan menandai equipment Breakdown (Warning untuk NG biasa).
 - **Riwayat**: filter, buka detail, Supervisor/Manager/Admin dapat *review* temuan.
 - **Checklist** (Admin/Manager): tambah/ubah/hapus item, tandai kritis, atur batas, salin dari kategori lain. Perubahan tidak mengubah inspeksi lama.
+
+## Preventive Maintenance (Phase 3)
+- **Daftar kerja**: PM yang terlambat / segera jatuh tempo. Tekan *Kerjakan*, isi jam, hasil, pengukuran, foto sebelum/sesudah.
+- **Jadwal PM** (Supervisor ke atas): tambah/ubah/hapus jadwal, pilih frekuensi dan teknisi, tulis instruksi kerja.
+- **Riwayat & approval**: Supervisor/Manager/Admin menyetujui atau menolak (alasan wajib). Yang ditolak muncul lagi di Daftar kerja. Anda tidak bisa menyetujui pekerjaan sendiri.
+- Jatuh tempo berikutnya dihitung dari tanggal jatuh tempo, bukan tanggal Anda mengerjakan, supaya jadwal tidak bergeser.
