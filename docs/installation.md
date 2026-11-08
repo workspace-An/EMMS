@@ -58,3 +58,6 @@ Prasyarat: akun Gmail pribadi, komputer dengan Node.js 18+ dan Git. Semua perint
 3. Jalankan `runSelfTestPhase3()` (harus 6/6).
 4. **Manage deployments > Edit > New version** (URL /exec tetap).
 5. Pengingat Calendar dibuat di kalender akun pemilik script. Agar teknisi ikut melihat, bagikan kalender itu (Calendar > Settings > Share) atau tunggu notifikasi email Phase 7. Matikan lewat Pengaturan > `PM_CALENDAR_ENABLED`.
+
+### Bila log menampilkan "Calendar sync gagal ... does not have permission"
+Izin Calendar belum diberikan. Pastikan `appsscript.json` di proyek Anda memuat blok `oauthScopes` (sudah ada di paket Phase 3; di editor: Project Settings > centang *Show appsscript.json manifest file in editor* lalu samakan isinya). Setelah itu jalankan `setupEMMS()` dari editor dan klik **Review permissions > Allow** (muncul daftar izin yang menyertakan Calendar). Bila dialog tidak muncul, buka myaccount.google.com/permissions, hapus akses aplikasi EMMS, lalu jalankan lagi.
