@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0-phase4 - Corrective Maintenance & Work Order
+- Menu **Corrective Maintenance**: lapor kerusakan (prioritas, uraian, sampai 5 foto bukti), penugasan teknisi, mulai/jeda/lanjut, akar masalah + tindakan + suku cadang + hasil perbaikan, verifikasi & tutup, buka kembali (alasan wajib).
+- Prioritas Critical menandai equipment **Breakdown** dan High menandai **Warning** (hanya naik, tidak pernah turun otomatis) disertai email ke Supervisor/Manager/Admin. Menutup CM dengan hasil "Sudah diperbaiki" dapat mengembalikan equipment ke Normal bila tidak ada CM lain yang berjalan (opsi dapat dimatikan).
+- Menu **Work Order**: dibuat dari temuan Inspeksi, PM, Corrective, atau manual; tugas (checklist) per WO; alur Requested -> Approved -> In Progress -> Completed -> Closed (juga Rejected / Cancelled). Satu sumber hanya boleh punya satu WO aktif; WO yang ditolak/dibatalkan boleh dibuat ulang.
+- Kontrol: pemohon tidak boleh menyetujui WO-nya sendiri, penyelesai tidak boleh menutup pekerjaannya sendiri (CM maupun WO), kecuali Admin (tercatat di audit). Hanya teknisi yang ditugaskan (atau Supervisor ke atas) yang mengerjakan. Selesai butuh semua tugas dicentang + catatan hasil.
+- Tombol "Lapor kerusakan" di detail equipment; "Buat Work Order dari temuan ini" di detail Inspeksi NG dan PM yang tidak "Selesai, normal".
+- Email penugasan ke teknisi (CM dan WO). Dashboard: kartu WO menunggu persetujuan; kartu CM/WO/grafik teknisi tanpa label fase.
+- Skema: kolom baru pada CORRECTIVE_MAINTENANCE, WORK_ORDERS, PREVENTIVE_MAINTENANCE (WorkOrderID). **Jalankan ulang `setupEMMS()` setelah update.**
+- Uji: backend 85 + 28 + 23 + 30 (Phase 4), E2E 34, `runSelfTestPhase4()`.
+
 ## 1.2.0-phase3 - Preventive Maintenance
 - Menu **PM**: Daftar kerja (terlambat / segera / milik saya, tombol Kerjakan), Jadwal PM (Admin/Manager/Supervisor), Riwayat & approval.
 - Jadwal: frekuensi Mingguan, Bulanan, 3 bulanan, 6 bulanan, Tahunan, atau interval hari kustom; teknisi penanggung jawab; instruksi kerja; aktif/nonaktif.

@@ -80,5 +80,36 @@ const Notify = {
       console.error('criticalFinding: ' + e.message);
     }
     return out;
+  },
+
+  /** Email ke Supervisor/Manager/Admin untuk laporan kerusakan High/Critical. Tidak pernah melempar error. */
+  complaint: function (c, eq) {
+    const out = { sent: 0, failed: 0 };
+    try {
+      const rcpt = Notify.recipients_(CFG.CRITICAL_ALERT_ROLES);
+      if (!rcpt.length) return out;
+      const subject = '[EMMS] ' + c.Priority.toUpperCase() + ' BREAKDOWN REPORT / 故障报告 - ' + eq.EquipmentID + ' ' + eq.EquipmentName;
+      const html = '<div style="font-family:Arial,sans-serif;max-width:560px;border:1px solid #fecaca;border-radius:8px"><div style="background:#b91c1c;color:#fff;padding:12px 18px;font-weight:bold;border-radius:8px 8px 0 0">' +
+        'LAPORAN KERUSAKAN / BREAKDOWN REPORT / 故障报告 (' + Notify.esc_(c.Priority) + ')</div><div style="padding:18px;color:#1e293b"><p><b>' + Notify.esc_(eq.EquipmentID) + '</b> - ' + Notify.esc_(eq.EquipmentName) +
+        '</p><p>' + Notify.esc_(c.ComplaintNo) + ' &middot; ' + Notify.esc_(c.DateReported) + ' &middot; ' + Notify.esc_(c.ReportedBy) + '</p><p>' + Notify.esc_(c.ProblemDescription) + '</p>' +
+        '<p style="color:#64748b;font-size:12px">EMMS &gt; Corrective Maintenance</p></div></div>';
+      let remaining = 0;
+      try { remaining = MailApp.getRemainingDailyQuota(); } catch (e) { remaining = 0; }
+      rcpt.forEach(function (r, i) {
+        if (i >= remaining) { out.failed++; return; }
+        if (Notify.sendLogged_('CM_REPORTED', r.email, subject, html, 'CORRECTIVE_MAINTENANCE', c.ComplaintNo)) out.sent++; else out.failed++;
+      });
+    } catch (e) { console.error('complaint: ' + e.message); }
+    return out;
+  },
+
+  /** Email penugasan CM / WO ke satu teknisi. Tidak pernah melempar error. */
+  assigned: function (type, email, title, desc, refType, refId) {
+    try {
+      const subject = '[EMMS] Penugasan / Assignment / 任务分配: ' + title;
+      const html = '<div style="font-family:Arial,sans-serif;max-width:560px;padding:16px;color:#1e293b"><p><b>' + Notify.esc_(title) + '</b></p><p>' + Notify.esc_(desc || '') +
+        '</p><p style="color:#64748b;font-size:12px">EMMS &gt; ' + (refType === 'WORK_ORDER' ? 'Work Order' : 'Corrective Maintenance') + '</p></div>';
+      return Notify.sendLogged_(type, email, subject, html, refType, refId);
+    } catch (e) { console.error('assigned: ' + e.message); return false; }
   }
 };

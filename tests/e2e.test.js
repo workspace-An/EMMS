@@ -276,8 +276,85 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     const txt = await page.textContent('.content');
     assert.ok(txt.includes('menunggu approval') || txt.includes('PM menunggu')); assert.ok(!/PM 7 hari ke depan\s*Phase/.test(txt));
   });
+  // ---------------------------------------------------------------- Phase 4
+  const btn = (txt) => page.locator('.modal-f').last().locator('button', { hasText: txt }).first();
+  let cmNo = '', woId = '';
+  await t('lapor kerusakan Critical: validasi, equipment jadi Breakdown, email terkirim', async () => {
+    await page.click('[data-nav=cm]'); await page.waitForSelector('#cbody');
+    await page.click('#ctools button'); await page.waitForSelector('.modal [name=ProblemDescription]');
+    await page.selectOption('[name=EquipmentID]', E1); await page.selectOption('[name=Priority]', 'Critical');
+    await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=ProblemDescription].invalid'), 'uraian wajib');
+    const mails = ctx.__state.mails.length;
+    await page.fill('[name=ProblemDescription]', 'Breaker utama trip dan berbau terbakar'); await page.click('.modal-f .btn.primary');
+    await page.waitForSelector('.modal', { state: 'detached' });
+    const c = ctx.Db.all('CORRECTIVE_MAINTENANCE'); assert.strictEqual(c.length, 1); cmNo = c[0].ComplaintNo;
+    assert.strictEqual(ctx.Db.get('EQUIPMENT', E1).EquipmentStatus, 'Breakdown');
+    assert.ok(ctx.__state.mails.length > mails);
+  });
+  await t('detail CM: mulai, selesaikan (validasi), tutup dengan pemulihan status equipment', async () => {
+    await page.waitForSelector('#cbody tr[data-id]'); await page.click('#cbody tr[data-id]'); await page.waitForSelector('.modal .btn.primary');
+    await btn('Mulai dikerjakan').click(); await page.waitForSelector('.modal [name=RootCause]');
+    await btn('Selesaikan').click();
+    assert.ok(await page.$('.field[data-f=RootCause].invalid'), 'akar masalah wajib');
+    await page.fill('[name=RootCause]', 'Terminal longgar'); await page.fill('[name=CorrectiveAction]', 'Kencangkan & ganti breaker');
+    await page.selectOption('[name=RepairResult]', 'Repaired'); await btn('Selesaikan').click();
+    await page.waitForSelector('.modal-f button:has-text("Verifikasi & tutup")');
+    assert.strictEqual(ctx.Db.get('CORRECTIVE_MAINTENANCE', cmNo).Status, 'Completed');
+    await btn('Verifikasi & tutup').click(); await page.waitForSelector('[name=extra]');
+    await btn('Konfirmasi').click(); await page.waitForTimeout(500);
+    assert.strictEqual(ctx.Db.get('CORRECTIVE_MAINTENANCE', cmNo).Status, 'Closed');
+    assert.strictEqual(ctx.Db.get('EQUIPMENT', E1).EquipmentStatus, 'Normal');
+    await page.keyboard.press('Escape');
+  });
+  await t('CM yang sudah ditutup tidak menawarkan Buat Work Order', async () => {
+    await page.click('[data-nav=cm]'); await page.click('.tabs button[data-t=done]'); await page.waitForSelector('#cbody tr[data-id]');
+    await page.click('#cbody tr[data-id]'); await page.waitForSelector('.modal');
+    // CM Closed: tombol buat WO tidak tampil (hanya untuk yang belum ditutup)
+    assert.strictEqual(await page.locator('.modal-f button', { hasText: 'Buat Work Order' }).count(), 0);
+    await page.keyboard.press('Escape');
+  });
+  await t('WO manual: buat, setujui + tugaskan, mulai, centang tugas, selesai, tutup', async () => {
+    await page.click('[data-nav=wo]'); await page.waitForSelector('#wtools button');
+    await page.click('#wtools button'); await page.waitForSelector('.modal [name=Title]');
+    await page.selectOption('[name=EquipmentID]', E2); await page.click('.modal-f .btn.primary');
+    assert.ok(await page.$('.field[data-f=Title].invalid'), 'judul wajib');
+    await page.fill('[name=Title]', 'Ganti kontaktor K1'); await page.fill('[name=tasks]', 'Isolasi panel\nGanti kontaktor\nUji fungsi');
+    await page.click('.modal-f .btn.primary'); await page.waitForSelector('.modal', { state: 'detached' });
+    woId = ctx.Db.all('WORK_ORDERS')[0].WorkOrderID; assert.strictEqual(ctx.Db.get('WORK_ORDERS', woId).Status, 'Requested');
+    await page.waitForSelector('#wbody tr[data-id]'); await page.click('#wbody tr[data-id]'); await page.waitForSelector('[name=AssignedTo]');
+    await page.selectOption('[name=AssignedTo]', { index: 1 });
+    await btn('Setujui').click(); await page.waitForSelector('.modal-f button:has-text("Mulai kerjakan")');
+    assert.strictEqual(ctx.Db.get('WORK_ORDERS', woId).Status, 'Approved');
+    await btn('Mulai kerjakan').click(); await page.waitForSelector('[data-task]:not([disabled])');
+    await btn('Tandai selesai').click().catch(() => {});
+    await page.fill('[name=ResultNotes]', 'Selesai'); await btn('Tandai selesai').click();
+    await page.waitForTimeout(400);
+    assert.strictEqual(ctx.Db.get('WORK_ORDERS', woId).Status, 'In Progress', 'tugas belum selesai harus menahan');
+    const nTasks = (await page.$$('[data-task]')).length; assert.strictEqual(nTasks, 3);
+    for (let i = 0; i < nTasks; i++) {
+      await page.locator('[data-task]').nth(i).check();
+      await page.waitForFunction(k => document.querySelectorAll('[data-task]:checked').length === k + 1 && !document.querySelector('[data-task][disabled]'), i);
+    }
+    await page.fill('[name=ResultNotes]', 'Kontaktor diganti'); await btn('Tandai selesai').click();
+    await page.waitForSelector('.modal-f button:has-text("Verifikasi & tutup")');
+    await btn('Verifikasi & tutup').click(); await page.waitForTimeout(500);
+    assert.strictEqual(ctx.Db.get('WORK_ORDERS', woId).Status, 'Closed');
+    await page.keyboard.press('Escape'); await page.waitForSelector('.modal', { state: 'detached' });
+  });
+  await t('detail inspeksi NG menawarkan "Buat Work Order dari temuan ini"', async () => {
+    await page.click('[data-nav=inspection]'); await page.click('.tabs button[data-t=history]'); await page.waitForSelector('#hbody tr[data-id]');
+    await page.selectOption('#hres', ctx.Db.all('DAILY_INSPECTIONS').find(i => i.OverallResult !== 'OK').OverallResult);
+    await page.waitForFunction(() => document.querySelectorAll('#hbody tr[data-id]').length >= 1);
+    await page.click('#hbody tr[data-id]'); await page.waitForSelector('.modal-f');
+    await page.locator('.modal-f button', { hasText: 'Buat Work Order dari temuan' }).click();
+    await page.waitForSelector('.modal [name=Title]');
+    assert.ok((await page.inputValue('[name=tasks]')).length > 0, 'tugas diisi dari item NG');
+    await page.click('.modal-f .btn.primary'); await page.waitForSelector('.modal', { state: 'detached' });
+    assert.ok(ctx.Db.all('WORK_ORDERS').some(w => w.SourceType === 'Inspection'));
+  });
   await t('modul fase berikutnya menampilkan placeholder', async () => {
-    await page.click('[data-nav=cm]'); assert.ok((await page.textContent('.content')).includes('Phase 4'));
+    await page.click('[data-nav=safety]'); assert.ok((await page.textContent('.content')).includes('Phase 5'));
   });
   await t('tampilan HP (375px): menu geser & tanpa scroll horizontal halaman', async () => {
     await page.setViewportSize({ width: 375, height: 760 });

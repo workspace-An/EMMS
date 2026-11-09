@@ -166,6 +166,8 @@
       else if (E.can('pm.approve') && !d.canApprove) html += '<div class="notice">' + esc(t('pm.selfNote')) + '</div>';
       if (d.canApprove) html += '<div class="field" data-f="ApprovalRemarks" style="margin-top:10px"><label>' + esc(t('f.ApprovalRemarks')) + '</label><textarea name="ApprovalRemarks" maxlength="500"></textarea><div class="ferr"></div></div><p class="sub">' + esc(t('pm.rejectNote')) + '</p>';
       var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      if (r.MaintenanceResult !== 'Done' && r.WorkOrderID) foot.push(E.btn(t('wo.viewWO', { id: r.WorkOrderID }), '', function () { E.pages.wo.openDetail(r.WorkOrderID, onDone); }, 'file'));
+      else if (r.MaintenanceResult !== 'Done' && E.can('wo.create')) foot.push(E.btn(t('wo.makeFrom'), '', function () { m.close(); E.pages.wo.openCreate('PM', id, onDone); }, 'file'));
       function decide(decision) {
         var rem = ($('[name=ApprovalRemarks]', m.body) || {}).value || '';
         E.api('pm.approve', { id: id, decision: decision, remarks: rem.trim(), UpdatedAt: r.UpdatedAt }).then(function () { E.toast(t('common.saved')); m.close(); if (onDone) onDone(); })

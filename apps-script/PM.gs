@@ -333,6 +333,7 @@ const PM = {
     const ctx = PM.ctx_(user);
     const head = PM.recPub_(r, ctx);
     ['MeasurementBefore', 'MeasurementAfter', 'Remarks', 'ApprovedBy', 'ApprovedAt', 'ApprovalRemarks'].forEach(function (k) { head[k] = r[k]; });
+    head.WorkOrderID = Work.liveWO_(r.WorkOrderID);
     head.hasBefore = !!r.PhotoBeforeID; head.hasAfter = !!r.PhotoAfterID;
     const s = Db.get('PM_SCHEDULES', r.PMScheduleID, { includeDeleted: true });
     head.Instructions = s ? s.Instructions : '';

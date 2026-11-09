@@ -217,6 +217,8 @@
       if (i.Status === 'Reviewed') html += '<div class="notice">' + esc(t('insp.reviewedBy', { by: i.ReviewedBy, at: E.fmtDT(i.ReviewedAt) })) + ' — ' + esc(i.ReviewRemarks) + '</div>';
       if (d.canReview) html += '<div class="field" style="margin-top:10px" data-f="ReviewRemarks"><label>' + esc(t('insp.reviewTitle')) + ' <i class="req">*</i></label><textarea name="ReviewRemarks" maxlength="500"></textarea><div class="ferr"></div></div>';
       var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      if (i.OverallResult !== 'OK' && i.WorkOrderID) foot.push(E.btn(t('wo.viewWO', { id: i.WorkOrderID }), '', function () { E.pages.wo.openDetail(i.WorkOrderID, onDone); }, 'file'));
+      else if (i.OverallResult !== 'OK' && E.can('wo.create')) foot.push(E.btn(t('wo.makeFrom'), '', function () { m.close(); E.pages.wo.openCreate('Inspection', id, onDone); }, 'file'));
       if (d.canReview) foot.push(E.btn(t('insp.reviewBtn'), 'primary', function () {
         var v = $('[name=ReviewRemarks]', m.body).value.trim();
         if (!v) { E.markErrors(m.body, { code: 'VALIDATION', details: { errors: [{ field: 'ReviewRemarks', rule: 'required' }] } }); return; }

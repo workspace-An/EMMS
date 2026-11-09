@@ -53,12 +53,12 @@
           '<div class="cards">' + card('inspectionsToday', 'clipboard', '', c.inspectionsToday) + card('notInspected', 'clipboard', 'warn', c.notInspected) +
           card('ngOpen', 'shield', c.ngOpen ? 'warn' : '', c.ngOpen) + card('criticalOpen', 'shield', c.criticalOpen ? 'bad' : '', c.criticalOpen) + '</div>' +
           '<div class="cards">' + card('pmUpcoming', 'calendar', '', c.pmUpcoming) + card('pmOverdue', 'calendar', c.pmOverdue ? 'bad' : '', c.pmOverdue) + card('pmAwaiting', 'check', c.pmAwaiting ? 'warn' : '', c.pmAwaiting) +
-          card('cmActive', 'wrench', 'warn', c.cmActive, 4) + card('woOpen', 'file', '', c.woOpen, 4) + card('k3Findings', 'shield', 'bad', c.k3Findings, 5) + '</div>' +
+          card('cmActive', 'wrench', c.cmActive ? 'warn' : '', c.cmActive) + card('woOpen', 'file', '', c.woOpen) + card('woAwaiting', 'file', c.woAwaiting ? 'warn' : '', c.woAwaiting) + card('k3Findings', 'shield', 'bad', c.k3Findings, 5) + '</div>' +
           '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartCondition')) + '</div><div class="card-b">' + donut(ch.condition.labels, ch.condition.values, [GOOD, MID, BAD], 'cond') + '</div></div>' +
           '<div class="card"><div class="card-h">' + esc(t('dash.chartStatus')) + '</div><div class="card-b">' + donut(ch.status.labels, ch.status.values, [GOOD, MID, BAD], 'status') + '</div></div></div>' +
           '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartMonthly')) + '</div><div class="card-b">' + monthly(ch.monthly) + '</div></div>' +
           '<div class="card"><div class="card-h">' + esc(t('dash.chartCategory')) + '</div><div class="card-b">' + hbars(ch.category.labels, ch.category.values) + '</div></div></div>' +
-          '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartTech')) + '<span class="badge b-gray" style="font-size:10px">' + esc(t('common.phase', { n: 4 })) + '</span></div><div class="card-b">' + hbars(ch.technician.labels, ch.technician.values) + '</div></div>';
+          '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartTech')) + '</div><div class="card-b">' + hbars(ch.technician.labels, ch.technician.values) + '</div></div>';
         if (d.activity) {
           html += '<div class="card"><div class="card-h">' + esc(t('dash.recent')) + '</div><div class="table-wrap"><table><tbody>' + (d.activity.length ? d.activity.map(function (a) {
             return '<tr><td class="sub" style="white-space:nowrap">' + esc(E.fmtDT(a.EventTime)) + '</td><td>' + esc(a.UserEmail) + '</td><td><b>' + esc(a.Action) + '</b> <span class="sub">' + esc(a.EntityID) + '</span></td></tr>';

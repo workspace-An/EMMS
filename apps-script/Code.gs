@@ -112,7 +112,32 @@ function getRoutes_() {
     'pm.photo': { perm: 'pm.view', fn: function (p) { return PM.photo(p); } },
     'pm.list': { perm: 'pm.view', fn: function (p, u) { return PM.list(p, u); } },
     'pm.get': { perm: 'pm.view', fn: function (p, u) { return PM.get(p, u); } },
-    'pm.approve': { perm: 'pm.approve', fn: function (p, u) { return PM.approve(p, u); } }
+    'pm.approve': { perm: 'pm.approve', fn: function (p, u) { return PM.approve(p, u); } },
+
+    // --- Phase 4: corrective maintenance & work order ---
+    'cm.report': { perm: 'cm.report', fn: function (p, u) { return CM.report(p, u); } },
+    'cm.list': { perm: 'cm.view', fn: function (p, u) { return CM.list(p, u); } },
+    'cm.get': { perm: 'cm.view', fn: function (p, u) { return CM.get(p, u); } },
+    'cm.assign': { perm: 'cm.assign', fn: function (p, u) { return CM.assign(p, u); } },
+    'cm.start': { perm: 'cm.work', fn: function (p, u) { return CM.start(p, u); } },
+    'cm.update': { perm: 'cm.work', fn: function (p, u) { return CM.update(p, u); } },
+    'cm.complete': { perm: 'cm.work', fn: function (p, u) { return CM.complete(p, u); } },
+    'cm.close': { perm: 'cm.close', fn: function (p, u) { return CM.close(p, u); } },
+    'cm.reopen': { perm: 'cm.close', fn: function (p, u) { return CM.reopen(p, u); } },
+    'cm.uploadPhoto': { perm: 'cm.report', fn: function (p, u) { return CM.uploadPhoto(p, u); } },
+    'cm.photo': { perm: 'cm.view', fn: function (p) { return CM.photo(p); } },
+    'wo.prefill': { perm: 'wo.create', fn: function (p) { return WO.prefill(p); } },
+    'wo.create': { perm: 'wo.create', fn: function (p, u) { return WO.create(p, u); } },
+    'wo.list': { perm: 'wo.view', fn: function (p, u) { return WO.list(p, u); } },
+    'wo.get': { perm: 'wo.view', fn: function (p, u) { return WO.get(p, u); } },
+    'wo.update': { perm: 'wo.create', fn: function (p, u) { return WO.update(p, u); } },
+    'wo.decide': { perm: 'wo.approve', fn: function (p, u) { return WO.decide(p, u); } },
+    'wo.assign': { perm: 'wo.approve', fn: function (p, u) { return WO.assign(p, u); } },
+    'wo.start': { perm: 'wo.work', fn: function (p, u) { return WO.start(p, u); } },
+    'wo.toggleTask': { perm: 'wo.work', fn: function (p, u) { return WO.toggleTask(p, u); } },
+    'wo.complete': { perm: 'wo.work', fn: function (p, u) { return WO.complete(p, u); } },
+    'wo.close': { perm: 'wo.approve', fn: function (p, u) { return WO.close(p, u); } },
+    'wo.cancel': { perm: 'wo.create', fn: function (p, u) { return WO.cancel(p, u); } }
   };
 }
 

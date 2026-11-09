@@ -61,3 +61,10 @@ Prasyarat: akun Gmail pribadi, komputer dengan Node.js 18+ dan Git. Semua perint
 
 ### Bila log menampilkan "Calendar sync gagal ... does not have permission"
 Izin Calendar belum diberikan. Pastikan `appsscript.json` di proyek Anda memuat blok `oauthScopes` (sudah ada di paket Phase 3; di editor: Project Settings > centang *Show appsscript.json manifest file in editor* lalu samakan isinya). Setelah itu jalankan `setupEMMS()` dari editor dan klik **Review permissions > Allow** (muncul daftar izin yang menyertakan Calendar). Bila dialog tidak muncul, buka myaccount.google.com/permissions, hapus akses aplikasi EMMS, lalu jalankan lagi.
+
+## Update dari Phase 3 ke Phase 4
+1. Ganti seluruh kode (clasp push dari `dist/`, atau salin semua file `.gs` dan `.html` termasuk **CM.html** dan **WO.html** yang baru).
+2. Jalankan **`setupEMMS()`** lagi (menambah kolom baru; tidak menghapus data). Izin tidak berubah dari Phase 3.
+3. Jalankan `runSelfTestPhase4()` (harus 5/5).
+4. **Manage deployments > Edit > New version**, lalu refresh keras (Ctrl+Shift+R). Menu Corrective Maintenance dan Work Order harus tanpa badge "Fase 4".
+5. Email penugasan dan peringatan memakai kuota harian Gmail pribadi (sekitar 100 penerima/hari, dibagi dengan OTP). Kegagalan kirim tidak membatalkan penyimpanan dan dicatat di sheet NOTIFICATIONS.

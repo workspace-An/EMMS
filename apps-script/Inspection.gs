@@ -319,7 +319,7 @@ const Inspection = {
       });
     const head = Inspection.decorate_(i, lk, eqIdx, user);
     head.Finding = i.Finding; head.Recommendation = i.Recommendation; head.Remarks = i.Remarks;
-    head.ReviewedBy = i.ReviewedBy; head.ReviewedAt = i.ReviewedAt; head.ReviewRemarks = i.ReviewRemarks;
+    head.ReviewedBy = i.ReviewedBy; head.ReviewedAt = i.ReviewedAt; head.ReviewRemarks = i.ReviewRemarks; head.WorkOrderID = Work.liveWO_(i.WorkOrderID);
     return { inspection: head, items: items, canReview: Auth.can(user, 'inspection.review') && i.Status === 'Open' };
   },
 

@@ -392,3 +392,124 @@ rule.selfApprove|tidak boleh menyetujui pekerjaan sendiri|you cannot approve you
 rule.notPending|sudah diputuskan|already decided|已做出决定
 rule.locked|sudah disetujui, tidak dapat diubah|already approved, cannot be changed|已批准，无法更改
 dash.pmAwaiting|PM menunggu approval|PM awaiting approval|待审批 PM
+prio.Low|Rendah|Low|低
+prio.Medium|Sedang|Medium|中
+prio.High|Tinggi|High|高
+prio.Critical|Kritis|Critical|严重
+cmst.Open|Baru|Open|新建
+cmst.In Progress|Dikerjakan|In progress|进行中
+cmst.Pending|Tertunda|Pending|暂停
+cmst.Completed|Selesai (menunggu verifikasi)|Completed (awaiting verification)|已完成（待验证）
+cmst.Closed|Ditutup|Closed|已关闭
+wost.Requested|Menunggu persetujuan|Awaiting approval|待批准
+wost.Approved|Disetujui|Approved|已批准
+wost.In Progress|Dikerjakan|In progress|进行中
+wost.Completed|Selesai (menunggu verifikasi)|Completed (awaiting verification)|已完成（待验证）
+wost.Closed|Ditutup|Closed|已关闭
+wost.Rejected|Ditolak|Rejected|已驳回
+wost.Cancelled|Dibatalkan|Cancelled|已取消
+rr.Repaired|Sudah diperbaiki|Repaired|已修复
+rr.Temporary|Perbaikan sementara|Temporary fix|临时修复
+rr.NotRepaired|Belum bisa diperbaiki|Not repaired|未能修复
+wosrc.Inspection|Inspeksi|Inspection|巡检
+wosrc.PM|Preventive Maintenance|Preventive Maintenance|预防性维护
+wosrc.Corrective|Corrective|Corrective|纠正性维护
+wosrc.Safety|K3 Listrik|Electrical safety|电气安全
+wosrc.Manual|Manual|Manual|手动
+cm.tabActive|Aktif|Active|进行中
+cm.tabDone|Selesai & ditutup|Completed & closed|已完成/已关闭
+cm.report|Lapor kerusakan|Report breakdown|报告故障
+cm.reportTitle|Laporan kerusakan|Breakdown report|故障报告
+cm.detail|Detail perbaikan|Repair detail|维修详情
+cm.allPrio|Semua prioritas|All priorities|全部优先级
+cm.fMine|Milik saya|Mine|我的
+cm.photos|Foto bukti ({n}/{max})|Evidence photos ({n}/{max})|证据照片（{n}/{max}）
+cm.photosPick|Foto bukti (maks {max})|Evidence photos (max {max})|证据照片（最多 {max} 张）
+cm.addPhoto|Tambah foto|Add photo|添加照片
+cm.viewPhoto|Foto {n}|Photo {n}|照片 {n}
+cm.assignTitle|Penugasan teknisi|Technician assignment|指派技术员
+cm.assignBtn|Tugaskan|Assign|指派
+cm.pickTech|Pilih teknisi|Select technician|选择技术员
+cm.start|Mulai dikerjakan|Start work|开始处理
+cm.resume|Lanjutkan pengerjaan|Resume work|继续处理
+cm.saveProgress|Simpan progres|Save progress|保存进度
+cm.hold|Jeda (tertunda)|Put on hold|暂停
+cm.complete|Selesaikan|Complete|完成
+cm.closeBtn|Verifikasi & tutup|Verify & close|验证并关闭
+cm.reopen|Buka kembali|Reopen|重新打开
+cm.setNormal|Kembalikan status equipment ke Normal bila tidak ada perbaikan lain yang berjalan|Return equipment status to Normal if no other repair is open|若无其他进行中的维修，则将设备状态恢复为正常
+cm.reopenReason|Alasan membuka kembali|Reason for reopening|重新打开的原因
+cm.selfClose|Anda yang menyelesaikan pekerjaan ini, jadi penutupan harus dilakukan orang lain.|You completed this work, so someone else must close it.|此工作由您完成，必须由他人关闭。
+cm.reportSaved|Laporan {no} dibuat.|Report {no} created.|已创建报告 {no}。
+cm.eqNow|Status equipment sekarang: {status}.|Equipment status is now: {status}.|设备状态现为：{status}。
+cm.notified|Email peringatan terkirim ke {n} penerima.|Alert email sent to {n} recipient(s).|已向 {n} 位收件人发送提醒邮件。
+cm.notifyFail|Email peringatan gagal/terbatas kuota. Hubungi Supervisor secara langsung.|Alert email failed or quota reached. Contact the Supervisor directly.|提醒邮件发送失败或额度已满，请直接联系主管。
+cm.photoFail|Laporan tersimpan, tetapi {n} foto gagal diunggah.|Report saved, but {n} photo(s) failed to upload.|报告已保存，但 {n} 张照片上传失败。
+cm.createWO|Buat Work Order|Create work order|创建工单
+cm.viewWO|Lihat {id}|View {id}|查看 {id}
+cm.noData|Tidak ada laporan.|No reports.|暂无报告。
+cm.eqNormalized|Equipment dikembalikan ke status Normal.|Equipment returned to Normal.|设备已恢复为正常。
+cm.eqHint|Prioritas Kritis menandai equipment Breakdown dan mengirim email ke Supervisor; Tinggi menandai Warning.|Critical marks the equipment as Breakdown and emails supervisors; High marks Warning.|严重将设备标记为故障并邮件通知主管；高标记为警告。
+cm.history|Riwayat|History|历史
+f.ComplaintNo|No. laporan|Report no.|报告编号
+f.ProblemDescription|Uraian masalah|Problem description|问题描述
+f.Priority|Prioritas|Priority|优先级
+f.RootCause|Akar masalah|Root cause|根本原因
+f.CorrectiveAction|Tindakan perbaikan|Corrective action|纠正措施
+f.SparePartUsed|Suku cadang dipakai|Spare parts used|使用的备件
+f.RepairResult|Hasil perbaikan|Repair result|维修结果
+f.DateReported|Tanggal lapor|Date reported|报告日期
+f.ReportedBy|Pelapor|Reported by|报告人
+f.CloseRemarks|Catatan penutupan|Closing remarks|关闭备注
+f.Title|Judul|Title|标题
+f.AssignedTo|Ditugaskan ke|Assigned to|指派给
+f.ResultNotes|Catatan hasil pekerjaan|Result notes|结果备注
+f.DueDate|Batas waktu|Due date|截止日期
+f.WorkOrderID|No. WO|WO no.|工单编号
+f.SourceType|Sumber|Source|来源
+f.tasks|Daftar tugas|Tasks|任务清单
+wo.tabOpen|Terbuka|Open|未关闭
+wo.tabDone|Selesai / ditutup|Done / closed|已结束
+wo.create|Buat Work Order|Create work order|创建工单
+wo.createTitle|Work Order baru|New work order|新建工单
+wo.detail|Detail Work Order|Work order detail|工单详情
+wo.tasks|Daftar tugas|Task list|任务清单
+wo.tasksHelp|Satu tugas per baris (maks 20)|One task per line (max 20)|每行一个任务（最多 20 个）
+wo.noTasks|(tanpa rincian tugas)|(no task breakdown)|（无任务明细）
+wo.overdue|Lewat batas waktu|Overdue|已逾期
+wo.approve|Setujui|Approve|批准
+wo.reject|Tolak|Reject|驳回
+wo.decisionTitle|Keputusan persetujuan|Approval decision|审批决定
+wo.assignTo|Tugaskan ke|Assign to|指派给
+wo.assignBtn|Tugaskan|Assign|指派
+wo.start|Mulai kerjakan|Start work|开始工作
+wo.complete|Tandai selesai|Mark completed|标记完成
+wo.close|Verifikasi & tutup|Verify & close|验证并关闭
+wo.cancel|Batalkan WO|Cancel WO|取消工单
+wo.cancelReason|Alasan pembatalan|Cancellation reason|取消原因
+wo.edit|Ubah WO|Edit WO|编辑工单
+wo.selfApprove|Anda pemohon WO ini, jadi persetujuan harus dilakukan orang lain.|You requested this WO, so someone else must approve it.|此工单由您申请，必须由他人批准。
+wo.selfClose|Anda yang menyelesaikan WO ini, jadi penutupan harus dilakukan orang lain.|You completed this WO, so someone else must close it.|此工单由您完成，必须由他人关闭。
+wo.saved|WO {id} dibuat dan menunggu persetujuan.|WO {id} created and awaiting approval.|工单 {id} 已创建，等待批准。
+wo.exists|Sudah ada WO aktif untuk sumber ini: {id}.|An active WO already exists for this source: {id}.|此来源已有进行中的工单：{id}。
+wo.makeFrom|Buat Work Order dari temuan ini|Create a work order from this finding|根据此发现创建工单
+wo.viewWO|Lihat {id}|View {id}|查看 {id}
+wo.noData|Tidak ada Work Order.|No work orders.|暂无工单。
+wo.source|Sumber|Source|来源
+wo.requestedBy|Pemohon|Requested by|申请人
+wo.approvedBy|{by} pada {at}|{by} on {at}|{by}，{at}
+wo.verifiedBy|Diverifikasi oleh|Verified by|验证人
+wo.done|{done}/{total} tugas selesai|{done}/{total} tasks done|已完成 {done}/{total} 项
+wo.fAll|Semua|All|全部
+wo.fMine|Milik saya|Mine|我的
+wo.fOverdue|Terlambat|Overdue|逾期
+wo.assignFirst|Tentukan teknisi dulu sebelum mulai.|Assign a technician before starting.|开始前请先指派技术员。
+rule.notAssignee|hanya teknisi yang ditugaskan yang boleh mengerjakan|only the assigned technician can do this|只有被指派的技术员可以执行
+rule.badState|status saat ini tidak memungkinkan aksi ini|current status does not allow this action|当前状态不允许此操作
+rule.maxPhotos|jumlah foto maksimum tercapai|maximum number of photos reached|已达到照片数量上限
+rule.notAssignable|sudah selesai atau ditutup|already completed or closed|已完成或已关闭
+rule.unassigned|belum ada teknisi yang ditugaskan|no technician assigned yet|尚未指派技术员
+rule.tasksPending|masih ada tugas yang belum selesai|some tasks are not done yet|仍有未完成的任务
+rule.tooMany|terlalu banyak|too many|数量过多
+rule.alreadyExists|sudah ada WO aktif untuk sumber ini|an active WO already exists for this source|此来源已有进行中的工单
+dash.woAwaiting|WO menunggu persetujuan|WOs awaiting approval|待批准工单

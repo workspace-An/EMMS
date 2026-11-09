@@ -22,7 +22,7 @@ Semua sel diformat **teks** dan ditulis sebagai string. Tipe di bawah adalah tip
 | 12 | PM_SCHEDULES | PMScheduleID | EquipmentID -> EQUIPMENT | Jadwal preventive maintenance (Phase 3). Status: Active/Inactive. |
 | 13 | PREVENTIVE_MAINTENANCE | PMID | PMScheduleID -> PM_SCHEDULES; EquipmentID -> EQUIPMENT | Pelaksanaan PM (Phase 3). Status: Completed. ApprovalStatus: Pending/Approved/Rejected. MaintenanceResult: Done/DoneWithFindings/Partial. |
 | 14 | CORRECTIVE_MAINTENANCE | ComplaintNo | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Completed/Closed. |
-| 15 | WORK_ORDERS | WorkOrderID | EquipmentID -> EQUIPMENT; SourceID -> (tabel sesuai SourceType) | Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety. |
+| 15 | WORK_ORDERS | WorkOrderID | EquipmentID -> EQUIPMENT; SourceID -> (tabel sesuai SourceType) | Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety/Manual. Status: Requested/Approved/In Progress/Completed/Closed/Rejected/Cancelled. |
 | 16 | WORK_ORDER_TASKS | TaskID | WorkOrderID -> WORK_ORDERS | Rincian tugas dalam Work Order (Phase 4). |
 | 17 | ELECTRICAL_SAFETY | SafetyID | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Temuan & inspeksi K3 listrik (Phase 5). |
 | 18 | RISK_ASSESSMENTS | RiskID | SafetyID -> ELECTRICAL_SAFETY; WorkOrderID -> WORK_ORDERS | Penilaian risiko (Phase 5). RiskLevel: Low/Medium/High/Critical. |
@@ -325,6 +325,7 @@ Pelaksanaan PM (Phase 3). Status: Completed. ApprovalStatus: Pending/Approved/Re
 | ApprovedAt | datetime |  |
 | ApprovalRemarks | text |  |
 | Remarks | text |  |
+| WorkOrderID | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |
@@ -352,6 +353,11 @@ Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Comple
 | PhotoEvidenceIDs | text |  |
 | RepairResult | text |  |
 | WorkOrderID | text |  |
+| ReportedByEmail | text |  |
+| CompletedBy | text |  |
+| ClosedBy | text |  |
+| ClosedAt | datetime |  |
+| CloseRemarks | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |
@@ -360,7 +366,7 @@ Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Comple
 
 ## WORK_ORDERS
 
-Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety.
+Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety/Manual. Status: Requested/Approved/In Progress/Completed/Closed/Rejected/Cancelled.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -379,6 +385,13 @@ Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety.
 | ResultNotes | text |  |
 | VerifiedBy | text |  |
 | ClosedAt | datetime |  |
+| RequestedByEmail | text |  |
+| ApprovedBy | text |  |
+| ApprovedAt | datetime |  |
+| ApprovalRemarks | text |  |
+| StartedAt | datetime |  |
+| CompletedBy | text |  |
+| CompletedAt | datetime |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |

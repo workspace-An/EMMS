@@ -59,6 +59,7 @@ const Dashboard = {
         pmAwaiting: Db.where('PREVENTIVE_MAINTENANCE', function (r) { return r.ApprovalStatus === 'Pending'; }).length,
         cmActive: cmOpen.length,
         woOpen: woOpen.length,
+        woAwaiting: woOpen.filter(function (w) { return w.Status === 'Requested'; }).length,
         k3Findings: k3Open.length
       },
       charts: {

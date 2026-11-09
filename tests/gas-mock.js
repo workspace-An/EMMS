@@ -154,7 +154,7 @@ function build(opts) {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
   const code = files.map(f => '// ==== ' + f + '\n' + fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
   // Ekspos deklarasi top-level (const/class tidak otomatis jadi properti global)
-  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
+  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,CM,WO,EqStatus,Work,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
   vm.runInContext(code + expose, ctx, { filename: 'emms-all.gs' });
   return ctx;
 }

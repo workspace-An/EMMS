@@ -527,3 +527,64 @@ function ensureThrows_(fn, code) {
   try { fn(); } catch (e) { if (!code || e.code === code) return; throw new Error('kode error ' + e.code + ' != ' + code); }
   throw new Error('tidak melempar error');
 }
+
+/**
+ * Uji Phase 4 pada Sheet SUNGGUHAN (Run dari editor): siklus Corrective dan Work Order lalu pembersihan.
+ * Tidak mengirim email (prioritas Medium, tanpa penugasan lewat email).
+ */
+function runSelfTestPhase4() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const eq = function (a, b, m) { if (a !== b) throw new Error((m || 'nilai') + ': diharapkan ' + b + ', dapat ' + a); };
+  const A = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+  const S = { email: 'selftest-sup@example.com', name: 'Self Test 2', role: 'Supervisor' };
+  const T = { email: 'selftest-tech@example.com', name: 'Self Test 3', role: 'Technician' };
+  let e1 = null, cmNo = '', woId = '';
+
+  t('Sheet & kolom Phase 4 lengkap (jalankan setupEMMS() bila gagal)', function () {
+    ['CORRECTIVE_MAINTENANCE', 'WORK_ORDERS', 'WORK_ORDER_TASKS', 'PREVENTIVE_MAINTENANCE'].forEach(function (n) {
+      const h = Db.headers(n);
+      Schema.columns(n).forEach(function (c) { if (h.indexOf(c.name) === -1) throw new Error(n + ' kehilangan kolom ' + c.name); });
+    });
+  });
+  t('Buat equipment uji & laporan kerusakan Medium', function () {
+    const cat = Db.all('EQUIPMENT_CATEGORIES')[0], loc = Db.all('LOCATIONS')[0];
+    e1 = Equipment.create({ EquipmentName: 'ZZTEST CM', CategoryID: cat.CategoryID, BuildingID: loc.BuildingID, LocationID: loc.LocationID, SerialNumber: 'ZZ-P4', Brand: 'ZZ' }, A);
+    const r = CM.report({ EquipmentID: e1.EquipmentID, ProblemDescription: 'uji', Priority: 'Medium' }, T);
+    cmNo = r.ComplaintNo; eq(Db.get('CORRECTIVE_MAINTENANCE', cmNo).Status, 'Open');
+  });
+  t('Mulai, selesai (validasi), penyelesai tidak boleh menutup, Supervisor menutup', function () {
+    CM.start({ id: cmNo }, T);
+    ensureThrows_(function () { CM.complete({ id: cmNo }, T); }, 'VALIDATION');
+    CM.complete({ id: cmNo, RootCause: 'a', CorrectiveAction: 'b', RepairResult: 'Repaired' }, T);
+    ensureThrows_(function () { CM.close({ id: cmNo }, T); }, 'FORBIDDEN');
+    eq(CM.close({ id: cmNo }, S).Status, 'Closed');
+  });
+  t('Work Order: buat, pemohon tidak boleh menyetujui, tugas wajib selesai, penutupan', function () {
+    woId = WO.create({ SourceType: 'Corrective', SourceID: cmNo, EquipmentID: e1.EquipmentID, Title: 'ZZTEST WO', Priority: 'Low', tasks: ['a', 'b'] }, T).WorkOrderID;
+    ensureThrows_(function () { WO.create({ SourceType: 'Corrective', SourceID: cmNo, EquipmentID: e1.EquipmentID, Title: 'dobel', tasks: [] }, T); }, 'CONFLICT');
+    ensureThrows_(function () { WO.decide({ id: woId, decision: 'Approved' }, T); }, 'FORBIDDEN');
+    // tanpa AssignedTo agar tidak ada email; penugasan dilakukan langsung pada data uji
+    WO.decide({ id: woId, decision: 'Approved' }, S);
+    Db.update('WORK_ORDERS', woId, { AssignedTo: T.email }, 'x');
+    WO.start({ id: woId }, T);
+    ensureThrows_(function () { WO.complete({ id: woId, ResultNotes: 'x' }, T); }, 'CONFLICT');
+    WO.get({ id: woId }, T).tasks.forEach(function (k) { WO.toggleTask({ taskId: k.TaskID, done: true }, T); });
+    WO.complete({ id: woId, ResultNotes: 'selesai' }, T);
+    ensureThrows_(function () { WO.close({ id: woId }, T); }, 'FORBIDDEN');
+    eq(WO.close({ id: woId }, S).Status, 'Closed');
+  });
+  t('Bersihkan data uji', function () {
+    Db.where('WORK_ORDER_TASKS', function (k) { return k.WorkOrderID === woId; }).forEach(function (k) { Db.hardDelete('WORK_ORDER_TASKS', k.TaskID); });
+    Db.hardDelete('WORK_ORDERS', woId);
+    Db.hardDelete('CORRECTIVE_MAINTENANCE', cmNo);
+    Equipment.remove({ id: e1.EquipmentID, reason: 'self test', confirmId: e1.EquipmentID }, A);
+  });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
+}

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node scripts/build.js",
     "check": "node scripts/check-frontend.js",
-    "test": "node scripts/check-frontend.js && node tests/backend.test.js && node tests/inspection.test.js && node tests/pm.test.js",
+    "test": "node scripts/check-frontend.js && node tests/backend.test.js && node tests/inspection.test.js && node tests/pm.test.js && node tests/cm-wo.test.js",
     "test:e2e": "node tests/e2e.test.js",
     "docs": "node scripts/gen-schema-doc.js",
     "push": "npm run build && clasp push"

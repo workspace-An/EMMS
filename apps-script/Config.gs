@@ -7,7 +7,7 @@
 
 const CFG = {
   APP_NAME: 'EMMS',
-  VERSION: '1.2.0-phase3',
+  VERSION: '1.3.0-phase4',
 
   // Kunci Script Properties
   SS_ID_PROP: 'EMMS_SS_ID',
@@ -54,7 +54,16 @@ const CFG = {
     'pm.view':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
     'pm.execute':       ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
     'pm.schedule':      ['Admin', 'Maintenance Manager', 'Supervisor'],
-    'pm.approve':       ['Admin', 'Maintenance Manager', 'Supervisor']
+    'pm.approve':       ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'cm.view':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
+    'cm.report':        ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'cm.work':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'cm.assign':        ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'cm.close':         ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'wo.view':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
+    'wo.create':        ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'wo.work':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'wo.approve':       ['Admin', 'Maintenance Manager', 'Supervisor']
   },
 
   // Kebijakan Phase 2
@@ -67,7 +76,14 @@ const CFG = {
   PM_FREQUENCIES: ['Weekly', 'Monthly', 'Quarterly', 'Semiannual', 'Yearly', 'Custom'],
   PM_RESULTS: ['Done', 'DoneWithFindings', 'Partial'],
   PM_BACKDATE_MAX_DAYS: 7,
-  PM_DEFAULT_LEAD_DAYS: 7
+  PM_DEFAULT_LEAD_DAYS: 7,
+
+  // Kebijakan Phase 4
+  PRIORITIES: ['Low', 'Medium', 'High', 'Critical'],
+  REPAIR_RESULTS: ['Repaired', 'Temporary', 'NotRepaired'],
+  CM_MAX_PHOTOS: 5,
+  WO_MAX_TASKS: 20,
+  WO_SOURCES: ['Inspection', 'PM', 'Corrective', 'Safety', 'Manual']
 };
 
 /**

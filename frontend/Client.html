@@ -76,6 +76,7 @@
       return d.errors.map(function (e) { return fieldLabel(e.field) + ': ' + t('rule.' + e.rule); }).join(' · ');
     }
     if (code === 'CONFLICT' && d.rule) return (d.field ? fieldLabel(d.field) + ': ' : '') + t('rule.' + d.rule);
+    if (code === 'FORBIDDEN' && d.rule && t('rule.' + d.rule) !== 'rule.' + d.rule) return t('rule.' + d.rule);
     var s = t('err.' + code);
     if (s === 'err.' + code) s = t('err.SERVER');
     if (code === 'SERVER' && d.ref) s += ' (ref ' + d.ref + ')';
@@ -307,12 +308,12 @@
   var NAV = [
     { id: 'dashboard', icon: 'dashboard' }, { id: 'equipment', icon: 'bolt' },
     { id: 'inspection', icon: 'clipboard' }, { id: 'pm', icon: 'calendar' },
-    { id: 'cm', icon: 'wrench', phase: 4 }, { id: 'wo', icon: 'file', phase: 4 },
+    { id: 'cm', icon: 'wrench' }, { id: 'wo', icon: 'file' },
     { id: 'safety', icon: 'shield', phase: 5 }, { id: 'inventory', icon: 'box', phase: 6 },
     { id: 'reports', icon: 'chart', phase: 8 }, { sep: true },
     { id: 'users', icon: 'users', perm: 'users.view' }, { id: 'settings', icon: 'gear', perm: 'settings.view' }
   ];
-  E.PHASE_FOR = { cm: 4, wo: 4, safety: 5, inventory: 6, reports: 8 };
+  E.PHASE_FOR = { safety: 5, inventory: 6, reports: 8 };
 
   function renderShell() {
     var u = S.user;

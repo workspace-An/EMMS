@@ -95,21 +95,23 @@ const SCHEMA = {
     fk: 'PMScheduleID -> PM_SCHEDULES; EquipmentID -> EQUIPMENT',
     cols: ['PMScheduleID', 'EquipmentID', 'PMTitle', 'PlannedDate:d', 'ActualDate:d', 'StartTime', 'FinishTime', 'Technician',
       'TechnicianEmail', 'MaintenanceResult', 'MeasurementBefore', 'MeasurementAfter', 'PhotoBeforeID', 'PhotoAfterID',
-      'ApprovalStatus', 'ApprovedBy', 'ApprovedAt:dt', 'ApprovalRemarks', 'Remarks']
+      'ApprovalStatus', 'ApprovedBy', 'ApprovedAt:dt', 'ApprovalRemarks', 'Remarks', 'WorkOrderID']
   },
   CORRECTIVE_MAINTENANCE: {
     pk: 'ComplaintNo', prefix: 'CM', tab: '#ef4444',
     desc: 'Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Completed/Closed.',
     fk: 'EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS',
     cols: ['EquipmentID', 'ProblemDescription', 'DateReported:d', 'ReportedBy', 'Priority', 'RootCause', 'CorrectiveAction',
-      'AssignedTechnician', 'SparePartUsed', 'StartTime', 'FinishTime', 'PhotoEvidenceIDs', 'RepairResult', 'WorkOrderID']
+      'AssignedTechnician', 'SparePartUsed', 'StartTime', 'FinishTime', 'PhotoEvidenceIDs', 'RepairResult', 'WorkOrderID',
+      'ReportedByEmail', 'CompletedBy', 'ClosedBy', 'ClosedAt:dt', 'CloseRemarks']
   },
   WORK_ORDERS: {
     pk: 'WorkOrderID', prefix: 'WO', tab: '#ef4444',
-    desc: 'Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety.',
+    desc: 'Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety/Manual. Status: Requested/Approved/In Progress/Completed/Closed/Rejected/Cancelled.',
     fk: 'EquipmentID -> EQUIPMENT; SourceID -> (tabel sesuai SourceType)',
     cols: ['SourceType', 'SourceID', 'EquipmentID', 'Title', 'Description', 'Priority', 'RequestedBy', 'AssignedTo',
-      'PlannedDate:d', 'DueDate:d', 'ApprovalStatus', 'ResultNotes', 'VerifiedBy', 'ClosedAt:dt']
+      'PlannedDate:d', 'DueDate:d', 'ApprovalStatus', 'ResultNotes', 'VerifiedBy', 'ClosedAt:dt',
+      'RequestedByEmail', 'ApprovedBy', 'ApprovedAt:dt', 'ApprovalRemarks', 'StartedAt:dt', 'CompletedBy', 'CompletedAt:dt']
   },
   WORK_ORDER_TASKS: {
     pk: 'TaskID', prefix: 'WOT', tab: '#ef4444',

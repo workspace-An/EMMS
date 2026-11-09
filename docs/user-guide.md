@@ -22,3 +22,9 @@
 - **Jadwal PM** (Supervisor ke atas): tambah/ubah/hapus jadwal, pilih frekuensi dan teknisi, tulis instruksi kerja.
 - **Riwayat & approval**: Supervisor/Manager/Admin menyetujui atau menolak (alasan wajib). Yang ditolak muncul lagi di Daftar kerja. Anda tidak bisa menyetujui pekerjaan sendiri.
 - Jatuh tempo berikutnya dihitung dari tanggal jatuh tempo, bukan tanggal Anda mengerjakan, supaya jadwal tidak bergeser.
+
+## Corrective Maintenance & Work Order (Phase 4)
+- **Lapor kerusakan**: dari menu Corrective atau detail equipment. Prioritas Kritis menandai equipment Breakdown dan memberi tahu Supervisor lewat email.
+- **Alur CM**: Baru -> (Supervisor menugaskan) -> teknisi Mulai -> Selesaikan (akar masalah, tindakan, hasil wajib) -> Supervisor Verifikasi & tutup. Anda tidak bisa menutup pekerjaan yang Anda selesaikan sendiri.
+- **Work Order**: dibuat dari temuan Inspeksi/PM/Corrective atau manual. Supervisor menyetujui dan menugaskan; teknisi mengerjakan dan mencentang tugas; WO selesai hanya bila semua tugas dicentang dan catatan hasil diisi; orang lain memverifikasi dan menutup.
+- Satu temuan hanya boleh punya satu WO aktif. Bila WO ditolak atau dibatalkan, Anda boleh membuat yang baru.

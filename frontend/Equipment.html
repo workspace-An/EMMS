@@ -134,6 +134,7 @@
       } else {
         if (E.can('equipment.delete')) foot.appendChild(E.btn(t('common.delete'), 'danger', function () { del(e, m); }, 'trash'));
         if (E.can('equipment.edit')) foot.appendChild(E.btn(t('common.edit'), 'primary', function () { m.close(); openForm(e); }, 'edit'));
+        if (E.can('cm.report')) foot.insertBefore(E.btn(t('cm.report'), '', function () { m.close(); E.pages.cm.openReport(e.EquipmentID); }, 'wrench'), foot.firstChild);
         if (E.can('inspection.create')) foot.insertBefore(E.btn(t('insp.start'), 'primary', function () { m.close(); E.pages.inspection.openForm(e.EquipmentID); }, 'clipboard'), foot.firstChild);
       }
       foot.appendChild(E.btn(t('common.close'), '', m.close));

@@ -3,10 +3,11 @@
 ## Otomatis
 | Perintah | Isi | Lingkungan |
 |---|---|---|
-| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 | Node + **mock** layanan Google |
-| `npm run test:e2e` | 29 skenario di Chromium (login OTP, dashboard, equipment, QR, form, bahasa, HP 375px, inspeksi OK/NG, review, checklist, jadwal & pelaksanaan & approval PM) | Playwright + mock |
+| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 | Node + **mock** layanan Google |
+| `npm run test:e2e` | 34 skenario di Chromium (login OTP, dashboard, equipment, QR, form, bahasa, HP 375px, inspeksi OK/NG, review, checklist, jadwal & pelaksanaan & approval PM, laporan kerusakan, siklus CM, siklus Work Order) | Playwright + mock |
 | `node tests/qr-verify.mjs` | QR dibaca decoder OpenCV (14 kasus) | Python + OpenCV |
 | `runSelfTest()` di Apps Script | 17 uji pada **Sheet sungguhan** | Google |
+| `runSelfTestPhase4()` di Apps Script | 5 uji CM + WO pada Sheet sungguhan (data uji dibersihkan; tanpa email) | Google |
 | `runSelfTestPhase3()` di Apps Script | 6 uji PM pada Sheet **dan Calendar** sungguhan (membuat lalu menghapus 1 event uji; tanpa email) | Google |
 | `runSelfTestPhase2()` di Apps Script | 7 uji inspeksi pada Sheet sungguhan (data uji dibersihkan; tanpa email) | Google |
 
@@ -49,3 +50,18 @@ Jalankan `setupEMMS()` ulang (izinkan akses Calendar), lalu `runSelfTestPhase3()
 | 5 | Kerjakan ulang > Setujui | Status Disetujui; foto tidak bisa diganti lagi |
 | 6 | Viewer | Bisa lihat daftar & riwayat; tanpa tombol Kerjakan/Jadwal/Setujui |
 | 7 | Dua teknisi menekan Simpan untuk PM yang sama hampir bersamaan | Hanya satu rekaman; yang lain mendapat "PM jatuh tempo ini sudah dikerjakan" |
+
+## Uji manual Phase 4 (di Google, wajib)
+Jalankan `setupEMMS()` ulang, lalu `runSelfTestPhase4()` (harus 5/5).
+| # | Langkah | Hasil yang benar |
+|---|---|---|
+| 1 | Technician: Lapor kerusakan, prioritas **Critical**, foto dari HP | Equipment jadi Breakdown; email masuk ke Supervisor/Manager/Admin; foto terbuka di detail |
+| 2 | Supervisor: buka laporan, tugaskan teknisi | Teknisi menerima email penugasan |
+| 3 | Teknisi lain mencoba Mulai | Ditolak: hanya yang ditugaskan |
+| 4 | Teknisi: Mulai > Jeda tanpa tindakan | Ditolak (tindakan wajib); dengan tindakan -> status Tertunda |
+| 5 | Teknisi: Selesaikan lalu coba Tutup sendiri | Tombol tutup tidak ada / ditolak (`selfApprove`) |
+| 6 | Supervisor: Verifikasi & tutup (centang pemulihan) | Closed; equipment kembali Normal bila tidak ada CM lain |
+| 7 | Inspeksi NG -> riwayat -> "Buat Work Order dari temuan ini" | Tugas terisi dari item NG; buat kedua kali -> ditolak (sudah ada WO aktif) |
+| 8 | Technician buat WO lalu coba setujui sendiri | Ditolak; Supervisor lain menyetujui + menugaskan (email terkirim) |
+| 9 | Teknisi: Mulai, centang semua tugas, isi catatan, Tandai selesai | Completed; Supervisor lain menutup -> Closed |
+| 10 | Viewer | Hanya melihat; tanpa tombol aksi |
