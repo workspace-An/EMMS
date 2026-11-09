@@ -1,0 +1,387 @@
+<script>
+/* EMMS - Client.html : inti frontend (API, i18n, UI helper, login, shell, router) */
+(function () {
+  'use strict';
+  var E = window.EMMS = { pages: {} };
+  var BOOT = window.__BOOT || {};
+  var S = E.S = { user: null, perms: [], settings: {}, master: { factories: [], buildings: [], locations: [], categories: [] },
+    webAppUrl: BOOT.webAppUrl || '', lang: 'id', page: 'dashboard', params: {} };
+
+  // ------------------------------------------------------------------ util
+  var esc = E.esc = function (s) {
+    return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var $ = E.$ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = E.$$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  E.can = function (perm) { return S.perms.indexOf(perm) !== -1; };
+  E.fmtDT = function (s) { return String(s || '').replace('T', ' ').slice(0, 16); };
+
+  var mem = {};
+  var Store = E.Store = {
+    get: function (k) { try { var v = localStorage.getItem('emms.' + k); return v === null ? (mem[k] || null) : v; } catch (e) { return mem[k] || null; } },
+    set: function (k, v) { mem[k] = v; try { localStorage.setItem('emms.' + k, v); } catch (e) { /* storage diblokir: tetap di memori */ } },
+    del: function (k) { delete mem[k]; try { localStorage.removeItem('emms.' + k); } catch (e) { /* abaikan */ } }
+  };
+
+  // ------------------------------------------------------------------ i18n
+  var t = E.t = function (key, vars) {
+    var d = (window.I18N || {})[S.lang] || {};
+    var s = d[key];
+    if (s === undefined) s = ((window.I18N || {}).en || {})[key];
+    if (s === undefined) return key;
+    if (vars) Object.keys(vars).forEach(function (k) { s = s.split('{' + k + '}').join(vars[k]); });
+    return s;
+  };
+  /** terjemahkan nilai enum, mis. tv('status','Normal') -> t('status.Normal') */
+  E.tv = function (prefix, v) { if (v === '' || v === null || v === undefined) return ''; var k = prefix + '.' + v; var r = t(k); return r === k ? v : r; };
+  var fieldLabel = E.fieldLabel = function (f) { if (String(f).indexOf('item_') === 0) return t('insp.item'); if (String(f) === 'photo') return t('insp.photo'); var k = 'f.' + f; var r = t(k); return r === k ? f : r; };
+
+  E.setLang = function (l, persist) {
+    if (!window.I18N[l]) l = 'id';
+    S.lang = l;
+    document.documentElement.lang = l === 'zh' ? 'zh-CN' : l;
+    Store.set('lang', l);
+    if (persist && S.user) api('profile.setLanguage', { language: l }, { quiet: true }).catch(function () { });
+  };
+
+  // ------------------------------------------------------------------ API
+  var busy = 0;
+  function setBusy(d) { busy = Math.max(0, busy + d); var b = $('#loadbar'); if (b) b.classList.toggle('on', busy > 0); }
+  var api = E.api = function (action, payload, opts) {
+    return new Promise(function (resolve, reject) {
+      setBusy(1);
+      if (!window.google || !google.script || !google.script.run) { setBusy(-1); reject({ code: 'NETWORK' }); return; }
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setBusy(-1);
+          if (!res) return reject({ code: 'SERVER' });
+          if (res.ok) return resolve(res.data);
+          if (res.code === 'AUTH' && S.user && !(opts && opts.quiet)) sessionLost();
+          reject(res);
+        })
+        .withFailureHandler(function (err) {
+          setBusy(-1);
+          reject({ code: 'NETWORK', details: { message: String((err && err.message) || err) } });
+        })
+        .api(Store.get('token') || '', action, payload || {});
+    });
+  };
+
+  var errText = E.errText = function (err) {
+    var code = (err && err.code) || 'SERVER';
+    var d = (err && err.details) || {};
+    if (code === 'VALIDATION' && d.errors && d.errors.length) {
+      return d.errors.map(function (e) { return fieldLabel(e.field) + ': ' + t('rule.' + e.rule); }).join(' · ');
+    }
+    if (code === 'CONFLICT' && d.rule) return (d.field ? fieldLabel(d.field) + ': ' : '') + t('rule.' + d.rule);
+    if (code === 'FORBIDDEN' && d.rule && t('rule.' + d.rule) !== 'rule.' + d.rule) return t('rule.' + d.rule);
+    var s = t('err.' + code);
+    if (s === 'err.' + code) s = t('err.SERVER');
+    if (code === 'SERVER' && d.ref) s += ' (ref ' + d.ref + ')';
+    return s;
+  };
+
+  // ------------------------------------------------------------------ UI helpers
+  var ICONS = {
+    dashboard: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z',
+    bolt: 'M13 2L4 14h7l-1 8 9-12h-7z',
+    clipboard: 'M9 4h6v3H9zM15 5h3v16H6V5h3M9 14l2 2 4-4',
+    calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+    wrench: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-.6-.6-2.1z',
+    file: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6',
+    shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+    box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10',
+    chart: 'M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3',
+    users: 'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM4 21c0-4 3.5-6 8-6s8 2 8 6',
+    gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.5-2.3 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.5z',
+    logout: 'M9 21H5V3h4M16 17l5-5-5-5M21 12H9',
+    menu: 'M3 6h18M3 12h18M3 18h18',
+    search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
+    plus: 'M12 5v14M5 12h14',
+    qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14v3M14 20h3M20 20h1',
+    print: 'M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z',
+    edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+    trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+    eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+    x: 'M6 6l12 12M18 6L6 18',
+    download: 'M12 3v12M7 10l5 5 5-5M4 21h16',
+    refresh: 'M20 11a8 8 0 1 0-2 5.3M20 4v7h-7',
+    check: 'M5 13l4 4L19 7',
+    upload: 'M12 16V4M7 9l5-5 5 5M4 20h16',
+    copy: 'M9 9h11v11H9zM5 15V4h11'
+  };
+  var ic = E.ic = function (n) {
+    return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (ICONS[n] || '') + '"/></svg>';
+  };
+
+  E.badge = function (kind, text) { return '<span class="badge b-' + kind + '">' + esc(text) + '</span>'; };
+  E.statusBadge = function (v) { return E.badge({ Normal: 'ok', Warning: 'warn', Breakdown: 'bad' }[v] || 'gray', E.tv('status', v)); };
+  E.condBadge = function (v) { return E.badge({ Good: 'ok', Fair: 'warn', Poor: 'bad' }[v] || 'gray', E.tv('cond', v)); };
+
+  E.toast = function (msg, type) {
+    var el = document.createElement('div');
+    el.className = 'toast ' + (type || '');
+    el.textContent = msg;
+    $('#toast-root').appendChild(el);
+    setTimeout(function () { el.remove(); }, type === 'err' ? 7000 : 3800);
+  };
+
+  var btn = E.btn = function (label, cls, onclick, icon) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn ' + (cls || '');
+    b.innerHTML = (icon ? ic(icon) : '') + '<span>' + esc(label) + '</span>';
+    if (onclick) b.addEventListener('click', onclick);
+    return b;
+  };
+
+  var modals = [];
+  E.modal = function (o) {
+    var wrap = document.createElement('div');
+    wrap.className = 'modal-back';
+    wrap.innerHTML = '<div class="modal ' + (o.size || '') + '" role="dialog" aria-modal="true"><div class="modal-h"><h3>' + esc(o.title || '') +
+      '</h3><button type="button" class="icon-btn" data-x aria-label="' + esc(t('common.close')) + '">' + ic('x') + '</button></div><div class="modal-b"></div><div class="modal-f"></div></div>';
+    var body = $('.modal-b', wrap), foot = $('.modal-f', wrap);
+    if (typeof o.body === 'string') body.innerHTML = o.body; else if (o.body) body.appendChild(o.body);
+    (o.footer || []).forEach(function (b) { foot.appendChild(b); });
+    if (!o.footer || !o.footer.length) foot.remove();
+    $('#modal-root').appendChild(wrap);
+    var m = { el: wrap, body: body, foot: foot };
+    m.close = function () { wrap.remove(); modals = modals.filter(function (x) { return x !== m; }); if (o.onClose) o.onClose(); };
+    wrap.addEventListener('mousedown', function (e) { if (e.target === wrap && !o.sticky) m.close(); });
+    $('[data-x]', wrap).addEventListener('click', m.close);
+    modals.push(m);
+    return m;
+  };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modals.length) modals[modals.length - 1].close(); });
+
+  /** Dialog konfirmasi. o.requireText -> pengguna harus mengetik teks itu; o.reason -> wajib isi alasan. */
+  E.confirmDlg = function (o) {
+    return new Promise(function (resolve) {
+      var html = '<p>' + esc(o.message || '') + '</p>';
+      if (o.reason) html += '<div class="field" style="margin-top:10px"><label>' + esc(t('common.reason')) + ' <i class="req">*</i></label><textarea data-reason maxlength="300"></textarea></div>';
+      if (o.requireText) html += '<div class="field" style="margin-top:10px"><label>' + esc(t('common.typeToConfirm', { text: o.requireText })) + '</label><input type="text" data-type autocomplete="off"></div>';
+      var done = false;
+      var ok = btn(o.confirmLabel || t('common.confirm'), o.danger ? 'danger solid' : 'primary', function () {
+        done = true; var r = { reason: ($('[data-reason]', m.el) || {}).value || '' }; m.close(); resolve(r);
+      });
+      var cancel = btn(t('common.cancel'), '', function () { m.close(); });
+      var m = E.modal({ title: o.title, size: 'sm', body: html, footer: [cancel, ok], onClose: function () { if (!done) resolve(null); } });
+      var check = function () {
+        var okType = !o.requireText || (($('[data-type]', m.el) || {}).value || '').trim() === o.requireText;
+        var okReason = !o.reason || (($('[data-reason]', m.el) || {}).value || '').trim().length > 0;
+        ok.disabled = !(okType && okReason);
+      };
+      $$('[data-type],[data-reason]', m.el).forEach(function (i) { i.addEventListener('input', check); });
+      check();
+    });
+  };
+
+  // ---- form helpers
+  E.fieldHtml = function (f, v) {
+    var id = 'f_' + f.name, val = v === undefined || v === null ? '' : v, ctl;
+    if (f.type === 'select') {
+      ctl = '<select id="' + id + '" name="' + f.name + '"' + (f.disabled ? ' disabled' : '') + '>' + (f.options || []).map(function (o) {
+        return '<option value="' + esc(o.v) + '"' + (String(o.v) === String(val) ? ' selected' : '') + '>' + esc(o.l) + '</option>';
+      }).join('') + '</select>';
+    } else if (f.type === 'textarea') {
+      ctl = '<textarea id="' + id + '" name="' + f.name + '" maxlength="' + (f.max || 1000) + '">' + esc(val) + '</textarea>';
+    } else {
+      ctl = '<input id="' + id + '" name="' + f.name + '" type="' + (f.type || 'text') + '" value="' + esc(val) + '" maxlength="' + (f.max || 200) + '"' +
+        (f.readonly ? ' readonly' : '') + ' autocomplete="off"' + (f.inputmode ? ' inputmode="' + f.inputmode + '"' : '') + '>';
+    }
+    return '<div class="field' + (f.full ? ' full' : '') + '" data-f="' + f.name + '"><label for="' + id + '">' + esc(fieldLabel(f.name)) +
+      (f.required ? ' <i class="req">*</i>' : '') + '</label>' + ctl + '<div class="ferr"></div></div>';
+  };
+  E.readForm = function (root) {
+    var o = {};
+    $$('[name]', root).forEach(function (el) { o[el.name] = (el.value || '').trim(); });
+    return o;
+  };
+  E.clearErrors = function (root) { $$('.field.invalid', root).forEach(function (f) { f.classList.remove('invalid'); $('.ferr', f).textContent = ''; }); };
+  /** Tandai field bermasalah dari error VALIDATION/CONFLICT server. Mengembalikan true bila ada yang ditandai. */
+  E.markErrors = function (root, err) {
+    E.clearErrors(root);
+    var d = (err && err.details) || {}, list = [], first = null;
+    if (err && err.code === 'VALIDATION' && d.errors) list = d.errors;
+    else if (err && err.code === 'CONFLICT' && d.field) list = [{ field: d.field, rule: d.rule }];
+    list.forEach(function (e) {
+      var f = $('.field[data-f="' + e.field + '"]', root);
+      if (f) { f.classList.add('invalid'); $('.ferr', f).textContent = t('rule.' + e.rule); first = first || f; }
+    });
+    if (first) { var i = $('input,select,textarea', first); if (i) i.focus(); }
+    return !!first;
+  };
+
+  /** Perkecil foto di browser (maks 1280px, JPEG) -> base64 tanpa prefix. */
+  E.resizeImage = function (file, max, quality) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) return reject({ code: 'VALIDATION', details: { errors: [{ field: 'photo', rule: 'invalid' }] } });
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var m = max || 1280, r = Math.min(1, m / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', quality || 0.82).split(',')[1]);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject({ code: 'VALIDATION', details: { errors: [{ field: 'photo', rule: 'invalid' }] } }); };
+      img.src = url;
+    });
+  };
+
+  E.reloadMaster = function () {
+    return api('master.all', {}).then(function (m) { S.master = m; return m; });
+  };
+
+  // ------------------------------------------------------------------ Login
+  function renderLangButtons(onChange) {
+    return '<div class="lang">' + [['id', 'Bahasa Indonesia'], ['en', 'English'], ['zh', '中文']].map(function (l) {
+      return '<button type="button" data-lang="' + l[0] + '" class="' + (S.lang === l[0] ? 'on' : '') + '">' + l[1] + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function renderLogin() {
+    S.user = null;
+    var root = $('#root');
+    var email = '';
+    function draw(step, msg) {
+      root.innerHTML = '<div class="login"><div class="login-card"><div class="login-brand"><div class="logo">' + ic('bolt') + '</div><h1>EMMS</h1><p>' +
+        esc(t('login.subtitle')) + '</p></div>' +
+        (step === 1
+          ? '<div class="field"><label for="le">' + esc(t('login.email')) + '</label><input id="le" type="email" inputmode="email" autocomplete="email" autocapitalize="off" value="' + esc(email) + '" placeholder="nama@gmail.com"><div class="ferr" id="lerr"></div></div>' +
+          '<button class="btn primary" id="lsend" type="button">' + esc(t('login.sendCode')) + '</button>'
+          : '<p class="muted" style="margin:0 0 10px">' + esc(t('login.sent', { email: email })) + '</p>' +
+          '<div class="field"><label for="lc">' + esc(t('login.code')) + '</label><input id="lc" class="codein" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code"><div class="ferr" id="lerr"></div></div>' +
+          '<button class="btn primary" id="lverify" type="button">' + esc(t('login.verify')) + '</button>' +
+          '<div class="links"><a id="lresend">' + esc(t('login.resend')) + '</a><a id="lchange">' + esc(t('login.changeEmail')) + '</a></div>') +
+        renderLangButtons() + '<div class="note">' + esc(t('login.note')) + '</div></div></div>';
+      if (msg) $('#lerr').textContent = msg;
+      $$('[data-lang]', root).forEach(function (b) { b.onclick = function () { E.setLang(b.dataset.lang); draw(step); }; });
+      if (step === 1) {
+        var inp = $('#le'); inp.focus();
+        var send = function () { requestCode(); };
+        $('#lsend').onclick = send;
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+      } else {
+        var c = $('#lc'); c.focus();
+        c.addEventListener('input', function () { c.value = c.value.replace(/\D/g, '').slice(0, 6); if (c.value.length === 6) verify(); });
+        $('#lverify').onclick = verify;
+        $('#lchange').onclick = function () { draw(1); };
+        $('#lresend').onclick = function () { requestCode(true); };
+      }
+    }
+    function requestCode(resend) {
+      if (!resend) email = ($('#le').value || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $('#lerr').textContent = t('rule.invalid'); return; }
+      var b = $('#lsend') || $('#lresend'); if (b && b.tagName === 'BUTTON') b.disabled = true;
+      api('auth.requestOtp', { email: email }, { quiet: true }).then(function () { draw(2); if (resend) E.toast(t('login.resent'), 'ok'); })
+        .catch(function (e) { if (b) b.disabled = false; $('#lerr').textContent = errText(e); });
+    }
+    function verify() {
+      var code = ($('#lc').value || '').replace(/\D/g, '');
+      if (code.length !== 6) { $('#lerr').textContent = t('err.OTP_INVALID'); return; }
+      $('#lverify').disabled = true;
+      api('auth.verifyOtp', { email: email, code: code, device: (navigator.userAgent || '').slice(0, 100) }, { quiet: true })
+        .then(function (r) { Store.set('token', r.token); return enter(); })
+        .catch(function (e) { var v = $('#lverify'); if (v) v.disabled = false; $('#lerr').textContent = errText(e); var c = $('#lc'); if (c) { c.value = ''; c.focus(); } });
+    }
+    draw(1);
+  }
+
+  function renderNotSetup() {
+    $('#root').innerHTML = '<div class="login"><div class="login-card"><div class="login-brand"><div class="logo">' + ic('bolt') + '</div><h1>EMMS</h1></div><div class="notice">' +
+      esc(t('setup.needed')) + '</div><p class="muted">' + esc(t('setup.how')) + '</p>' + renderLangButtons() + '</div></div>';
+    $$('[data-lang]').forEach(function (b) { b.onclick = function () { E.setLang(b.dataset.lang); renderNotSetup(); }; });
+  }
+
+  function sessionLost() {
+    Store.del('token'); S.user = null;
+    renderLogin();
+    E.toast(t('err.AUTH'), 'err');
+  }
+
+  // ------------------------------------------------------------------ Shell + router
+  var NAV = [
+    { id: 'dashboard', icon: 'dashboard' }, { id: 'equipment', icon: 'bolt' },
+    { id: 'inspection', icon: 'clipboard' }, { id: 'pm', icon: 'calendar' },
+    { id: 'cm', icon: 'wrench' }, { id: 'wo', icon: 'file' },
+    { id: 'safety', icon: 'shield', phase: 5 }, { id: 'inventory', icon: 'box', phase: 6 },
+    { id: 'reports', icon: 'chart', phase: 8 }, { sep: true },
+    { id: 'users', icon: 'users', perm: 'users.view' }, { id: 'settings', icon: 'gear', perm: 'settings.view' }
+  ];
+  E.PHASE_FOR = { safety: 5, inventory: 6, reports: 8 };
+
+  function renderShell() {
+    var u = S.user;
+    var nav = NAV.map(function (n) {
+      if (n.sep) return '<hr>';
+      if (n.perm && !E.can(n.perm)) return '';
+      return '<a data-nav="' + n.id + '">' + ic(n.icon) + '<span>' + esc(t('nav.' + n.id)) + '</span>' +
+        (n.phase ? '<em class="soon" style="font-style:normal">' + esc(t('common.phase', { n: n.phase })) + '</em>' : '') + '</a>';
+    }).join('');
+    $('#root').innerHTML = '<div class="app"><aside class="side" id="side"><div class="brand"><div class="logo">' + ic('bolt') + '</div><div><b>EMMS</b><small>' + esc(S.settings.COMPANY_NAME || '') +
+      '</small></div></div><nav class="nav">' + nav + '</nav><div class="side-foot">v' + esc(BOOT.version || '') + '</div></aside><div class="scrim" id="scrim"></div>' +
+      '<div class="main"><header class="top"><button class="icon-btn burger" id="burger" aria-label="Menu">' + ic('menu') + '</button><h2 id="ptitle"></h2>' +
+      '<select class="mini" id="langsel" aria-label="' + esc(t('common.language')) + '"><option value="id">Bahasa Indonesia</option><option value="en">English</option><option value="zh">中文</option></select>' +
+      '<div class="user-chip"><div class="avatar">' + esc((u.name || '?').trim().charAt(0).toUpperCase()) + '</div><div class="who"><b>' + esc(u.name) + '</b><span>' + esc(E.tv('role', u.role)) + '</span></div></div>' +
+      '<button class="icon-btn" id="logout" title="' + esc(t('common.logout')) + '" aria-label="' + esc(t('common.logout')) + '">' + ic('logout') + '</button></header>' +
+      '<main class="content" id="content"></main></div></div>';
+    $('#langsel').value = S.lang;
+    $('#langsel').onchange = function () { E.setLang(this.value, true); renderShell(); go(S.page, S.params); };
+    $('#logout').onclick = logout;
+    $('#burger').onclick = function () { $('#side').classList.toggle('open'); $('#scrim').classList.toggle('open'); };
+    $('#scrim').onclick = closeSide;
+    $$('[data-nav]').forEach(function (a) { a.onclick = function () { go(a.dataset.nav); }; });
+  }
+  function closeSide() { var s = $('#side'); if (s) { s.classList.remove('open'); $('#scrim').classList.remove('open'); } }
+
+  var go = E.go = function (page, params) {
+    var item = NAV.filter(function (n) { return n.id === page; })[0];
+    if (!item || (item.perm && !E.can(item.perm))) page = 'dashboard';
+    S.page = page; S.params = params || {};
+    $$('[data-nav]').forEach(function (a) { a.classList.toggle('on', a.dataset.nav === page); });
+    $('#ptitle').textContent = t('nav.' + page);
+    var el = $('#content'); el.innerHTML = '';
+    var p = E.pages[page];
+    if (p) p.render(el, S.params);
+    else {
+      var ph = E.PHASE_FOR[page];
+      el.innerHTML = '<div class="card"><div class="empty">' + '<div style="font-size:40px;color:#94a3b8">' + ic(item.icon).replace('class="ic"', 'class="ic" style="width:44px;height:44px"') + '</div>' +
+        '<h3 style="margin:10px 0 4px;color:var(--text)">' + esc(t('nav.' + page)) + '</h3><p>' + esc(t('placeholder.msg', { n: ph })) + '</p></div></div>';
+    }
+    closeSide();
+    window.scrollTo(0, 0);
+  };
+
+  function logout() {
+    api('auth.logout', {}, { quiet: true }).catch(function () { }).then(function () { Store.del('token'); S.user = null; renderLogin(); });
+  }
+
+  function enter() {
+    return api('app.bootstrap', {}, { quiet: true }).then(function (b) {
+      S.user = b.user; S.perms = b.perms; S.settings = b.settings || {}; S.master = b.master; S.webAppUrl = b.webAppUrl || S.webAppUrl;
+      var saved = Store.get('lang');
+      E.setLang(saved || b.user.language || S.settings.DEFAULT_LANGUAGE || 'id');
+      renderShell();
+      if (BOOT.eq) { var id = BOOT.eq; BOOT.eq = ''; go('equipment', { open: id }); } else go('dashboard');
+    });
+  }
+
+  E.start = function () {
+    E.setLang(Store.get('lang') || BOOT.defaultLang || 'id');
+    if (!BOOT.setupDone) { renderNotSetup(); return; }
+    var tryToken = Store.get('token') ? enter().then(function () { return true; }, function () { Store.del('token'); return false; }) : Promise.resolve(false);
+    tryToken.then(function (ok) {
+      if (ok) return;
+      return api('auth.auto', {}, { quiet: true }).then(function (r) {
+        if (r && r.auto && r.token) { Store.set('token', r.token); return enter(); }
+        renderLogin();
+      }).catch(function () { renderLogin(); });
+    });
+  };
+})();
+</script>

@@ -1,0 +1,392 @@
+<script>
+/* EMMS - Inspection.html : papan hari ini, riwayat, formulir inspeksi, kelola checklist (Phase 2) */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, S = E.S, $ = E.$, $$ = E.$$;
+
+  function chkName(it) {
+    if (it.ItemKey) { var k = 'chk.' + it.ItemKey, r = t(k); if (r !== k) return r; }
+    return it.ItemName;
+  }
+  E.chkName = chkName;
+
+  function resBadge(r) {
+    if (!r) return '<span class="sub">-</span>';
+    return E.badge(r === 'OK' ? 'ok' : (r === 'NG' ? 'warn' : 'bad'), E.tv('ores', r));
+  }
+  function stBadge(s) { return E.badge(s === 'Open' ? 'warn' : (s === 'Reviewed' ? 'info' : 'ok'), E.tv('istatus', s)); }
+  function num(v) { var s = String(v === undefined || v === null ? '' : v).trim().replace(',', '.'); if (s === '') return null; var n = Number(s); return isFinite(n) ? n : NaN; }
+  function rangeText(it) {
+    var has = function (v) { return v !== '' && v !== null && v !== undefined; };
+    if (has(it.MinValue) && has(it.MaxValue)) return t('insp.rangeBoth', { min: it.MinValue, max: it.MaxValue, unit: it.Unit });
+    if (has(it.MinValue)) return t('insp.rangeMin', { min: it.MinValue, unit: it.Unit });
+    if (has(it.MaxValue)) return t('insp.rangeMax', { max: it.MaxValue, unit: it.Unit });
+    return t('insp.recordOnly');
+  }
+  function outOfRange(it, n) {
+    if (n === null || isNaN(n)) return false;
+    var has = function (v) { return v !== '' && v !== null && v !== undefined; };
+    return (has(it.MinValue) && n < it.MinValue) || (has(it.MaxValue) && n > it.MaxValue);
+  }
+
+  // ================================================================ formulir inspeksi
+  function openForm(equipmentId, onDone) {
+    E.api('inspection.form', { equipmentId: equipmentId }).then(function (d) {
+      if (!d.items.length) { E.toast(t('rule.noChecklist'), 'err'); return; }
+      var A = {}; // ChecklistID -> {Result, Value, Remarks, file, auto}
+      d.items.forEach(function (it) { A[it.ChecklistID] = { Result: '', Value: '', Remarks: '', file: null, auto: false }; });
+      var eq = d.equipment, busy = false;
+
+      var html = '<div class="block"><b>' + esc(eq.EquipmentID) + ' · ' + esc(eq.EquipmentName) + '</b><div class="sub">' + esc(eq.CategoryName) + ' · ' + esc(eq.BuildingName) + ' / ' + esc(eq.LocationName) + '</div></div>';
+      if (d.todayInspections.length) {
+        var l = d.todayInspections[d.todayInspections.length - 1];
+        html += '<div class="notice">' + esc(t('insp.todayDone', { n: d.todayInspections.length, by: l.TechnicianName, time: l.InspectionTime })) + '</div>';
+      }
+      html += '<div class="sumbar"><span id="isum"></span><button type="button" class="btn" id="iallok">' + esc(t('insp.setAllOk')) + '</button></div><div id="ilist">';
+      d.items.forEach(function (it) {
+        html += '<div class="ci' + (it.IsCritical ? ' crit' : '') + '" data-id="' + esc(it.ChecklistID) + '"><div class="ci-h"><b>' + esc(it.ItemNo + '. ' + chkName(it)) + '</b>' +
+          (it.IsCritical ? E.badge('bad', t('insp.critMark')) : '') +
+          '<div class="seg">' + ['OK', 'NG', 'NA'].map(function (r) { return '<button type="button" data-r="' + r + '">' + esc(E.tv('res', r)) + '</button>'; }).join('') + '</div></div>';
+        if (it.ItemType === 'measure') {
+          html += '<div class="mrow"><label class="sub">' + esc(t('insp.value')) + (it.Unit ? ' (' + esc(it.Unit) + ')' : '') + '</label><input type="text" inputmode="decimal" data-v autocomplete="off">' +
+            '<span class="hint" data-hint>' + esc(rangeText(it)) + '</span></div>';
+        }
+        html += '<div class="ngbox" data-ng hidden><div class="field"><label>' + esc(t('insp.remarksNg')) + ' <i class="req">*</i></label><textarea data-rm maxlength="500"></textarea></div>' +
+          '<div><label class="btn" style="cursor:pointer">' + E.ic('upload') + '<span>' + esc(t('insp.photoTake')) + '</span><input type="file" accept="image/*" capture="environment" data-ph hidden></label> <span class="sub" data-phn></span></div></div>' +
+          '<div class="ferr hint bad" data-err></div></div>';
+      });
+      html += '</div><div class="form-grid" id="iform">' +
+        E.fieldHtml({ name: 'Recommendation', type: 'textarea', full: true, max: 1000 }, '') +
+        E.fieldHtml({ name: 'Remarks', type: 'textarea', full: true, max: 500 }, '') +
+        (d.canBackdate ? E.fieldHtml({ name: 'InspectionDate', type: 'date', max: 10 }, d.today) + '<div class="sub">' + esc(t('insp.backdate', { n: d.backdateMaxDays })) + '</div>' : '') + '</div>';
+
+      var submit = E.btn(t('insp.submit'), 'primary', doSubmit, 'check');
+      var m = E.modal({ title: t('insp.form'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), submit], sticky: true });
+      var root = m.body;
+
+      function card(id) { return $('.ci[data-id="' + id + '"]', root); }
+      function items() { return d.items; }
+      function paint(it) {
+        var a = A[it.ChecklistID], c = card(it.ChecklistID);
+        $$('.seg button', c).forEach(function (b) { b.classList.toggle('on', b.dataset.r === a.Result); });
+        c.classList.toggle('ng', a.Result === 'NG');
+        $('[data-ng]', c).hidden = a.Result !== 'NG';
+        var vi = $('[data-v]', c);
+        if (vi) vi.disabled = a.Result === 'NA';
+        var h = $('[data-hint]', c);
+        if (h) {
+          var n = num(a.Value), bad = a.Result !== 'NA' && outOfRange(it, n);
+          h.textContent = bad ? t('insp.outOfRange') + ' · ' + rangeText(it) : rangeText(it);
+          h.classList.toggle('bad', bad);
+        }
+        if (a.Result !== 'NG') { /* catatan disimpan, tidak dikirim */ }
+      }
+      function summary() {
+        var ng = 0, crit = 0, un = 0;
+        items().forEach(function (it) { var r = A[it.ChecklistID].Result; if (!r) un++; if (r === 'NG') { ng++; if (it.IsCritical) crit++; } });
+        $('#isum', root).innerHTML = esc(t('insp.summary', { ng: ng, crit: crit })) + (un ? ' · <b>' + un + '</b> ?' : '');
+        return { ng: ng, crit: crit, un: un };
+      }
+      function setResult(it, r, manual) {
+        var a = A[it.ChecklistID], n = num(a.Value);
+        if (manual && r !== 'NG' && it.ItemType === 'measure' && r === 'OK' && outOfRange(it, n)) r = 'NG'; // OK tidak boleh bila di luar batas
+        a.Result = r; if (manual) a.auto = false;
+        paint(it); summary();
+      }
+      items().forEach(function (it) {
+        var c = card(it.ChecklistID), a = A[it.ChecklistID];
+        $$('.seg button', c).forEach(function (b) { b.onclick = function () { setResult(it, b.dataset.r, true); c.classList.remove('invalid'); $('[data-err]', c).textContent = ''; }; });
+        var vi = $('[data-v]', c);
+        if (vi) vi.oninput = function () {
+          a.Value = vi.value;
+          var n = num(a.Value);
+          if (n !== null && !isNaN(n)) {
+            if (outOfRange(it, n)) { a.auto = true; a.Result = 'NG'; }
+            else if (a.auto || !a.Result) { a.auto = false; a.Result = 'OK'; }
+          }
+          paint(it); summary();
+        };
+        $('[data-rm]', c).oninput = function () { a.Remarks = this.value; };
+        $('[data-ph]', c).onchange = function () { a.file = this.files[0] || null; $('[data-phn]', c).textContent = a.file ? a.file.name : ''; };
+        paint(it);
+      });
+      $('#iallok', root).onclick = function () {
+        items().forEach(function (it) {
+          var a = A[it.ChecklistID];
+          if (a.Result) return;
+          if (it.ItemType === 'measure') return; // nilai ukur wajib diisi manual
+          setResult(it, 'OK', false);
+        });
+      };
+      summary();
+
+      function clientCheck() {
+        var bad = null, sm = summary();
+        items().forEach(function (it) {
+          var a = A[it.ChecklistID], c = card(it.ChecklistID), rule = '';
+          if (!a.Result) rule = 'required';
+          else if (it.ItemType === 'measure' && a.Result !== 'NA') {
+            var n = num(a.Value);
+            if (n === null) rule = 'required'; else if (isNaN(n)) rule = 'invalid';
+          }
+          if (!rule && a.Result === 'NG' && !a.Remarks.trim()) rule = 'ngRemarks';
+          c.classList.toggle('invalid', !!rule);
+          $('[data-err]', c).textContent = rule ? t('rule.' + rule) : '';
+          if (rule && !bad) bad = c;
+        });
+        var reco = $('[name=Recommendation]', root);
+        var recoBad = sm.ng > 0 && !reco.value.trim();
+        $('.field[data-f=Recommendation]', root).classList.toggle('invalid', recoBad);
+        $('.field[data-f=Recommendation] .ferr', root).textContent = recoBad ? t('rule.required') : '';
+        if (!bad && recoBad) bad = $('.field[data-f=Recommendation]', root);
+        if (bad) bad.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return !bad;
+      }
+
+      function doSubmit() {
+        if (busy) return;
+        if (!clientCheck()) return;
+        busy = true; submit.disabled = true;
+        var f = E.readForm($('#iform', root));
+        var payload = {
+          EquipmentID: eq.EquipmentID, Remarks: f.Remarks || '', Recommendation: f.Recommendation || '',
+          items: items().map(function (it) {
+            var a = A[it.ChecklistID];
+            return { ChecklistID: it.ChecklistID, Result: a.Result, MeasurementValue: a.Result === 'NA' ? '' : a.Value, Remarks: a.Result === 'NG' ? a.Remarks.trim() : '' };
+          })
+        };
+        if (d.canBackdate && f.InspectionDate) payload.InspectionDate = f.InspectionDate;
+        E.api('inspection.submit', payload).then(function (res) {
+          var jobs = [];
+          res.results.forEach(function (r) {
+            var a = A[r.ChecklistID];
+            if (a && a.file && r.Result === 'NG') jobs.push({ rid: r.ResultID, file: a.file });
+          });
+          var failed = 0;
+          return jobs.reduce(function (p, j) {
+            return p.then(function () {
+              return E.resizeImage(j.file, 1280, 0.8).then(function (b64) { return E.api('inspection.uploadPhoto', { resultId: j.rid, base64: b64 }); }).catch(function () { failed++; });
+            });
+          }, Promise.resolve()).then(function () { return { res: res, failed: failed }; });
+        }).then(function (o) {
+          var res = o.res;
+          m.close();
+          E.toast(t('insp.saved') + ' · ' + E.tv('ores', res.OverallResult));
+          if (res.EquipmentStatus && res.EquipmentStatus !== eq.EquipmentStatus) E.toast(t('insp.statusAuto', { status: E.tv('status', res.EquipmentStatus) }));
+          if (res.OverallResult === 'Critical') {
+            if (res.notified && res.notified.sent > 0) E.toast(t('insp.criticalSent', { sent: res.notified.sent }), 'err');
+            else E.toast(t('insp.criticalFail'), 'err');
+          }
+          if (o.failed) E.toast(t('insp.photoFail', { n: o.failed }), 'err');
+          if (onDone) onDone(res);
+        }).catch(function (err) {
+          busy = false; submit.disabled = false;
+          var det = (err && err.details) || {};
+          var handled = false;
+          if (err && err.code === 'VALIDATION' && det.errors) {
+            det.errors.forEach(function (e) {
+              if (String(e.field).indexOf('item_') === 0) {
+                var c = card(String(e.field).slice(5));
+                if (c) { c.classList.add('invalid'); $('[data-err]', c).textContent = t('rule.' + e.rule); handled = true; }
+              }
+            });
+          }
+          if (!E.markErrors(root, err) && !handled) E.toast(E.errText(err), 'err');
+        });
+      }
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ detail & review
+  function openDetail(id, onDone) {
+    E.api('inspection.get', { id: id }).then(function (d) {
+      var i = d.inspection;
+      var html = '<div class="block"><b>' + esc(i.EquipmentID) + ' · ' + esc(i.EquipmentName || '') + '</b><div class="sub">' + esc(i.InspectionDate + ' ' + i.InspectionTime + ' · ' + i.TechnicianName) + '</div>' +
+        '<div style="margin-top:6px">' + resBadge(i.OverallResult) + ' ' + stBadge(i.Status) + '</div></div>';
+      html += '<div class="table-wrap"><table><thead><tr><th>#</th><th>' + esc(t('insp.item')) + '</th><th>' + esc(t('f.MeasurementValue')) + '</th><th></th><th>' + esc(t('f.Remarks')) + '</th><th></th></tr></thead><tbody>' +
+        d.items.map(function (r) {
+          return '<tr><td>' + r.ItemNo + '</td><td>' + esc(chkName(r)) + (r.IsCritical ? ' ' + E.badge('bad', t('insp.critMark')) : '') + '</td><td>' +
+            (r.MeasurementValue !== '' ? esc(r.MeasurementValue + (r.Unit ? ' ' + r.Unit : '')) : '') + '</td><td>' +
+            E.badge(r.Result === 'OK' ? 'ok' : (r.Result === 'NG' ? (r.IsCritical ? 'bad' : 'warn') : 'gray'), E.tv('res', r.Result)) + '</td><td>' + esc(r.Remarks) + '</td><td class="actions">' +
+            (r.hasPhoto ? '<button class="icon-btn" data-ph="' + esc(r.ResultID) + '" title="' + esc(t('insp.viewPhoto')) + '">' + E.ic('eye') + '</button>' : '') +
+            (r.Result === 'NG' && i.canPhoto !== false ? '<label class="icon-btn" title="' + esc(t('insp.addPhoto')) + '" style="cursor:pointer">' + E.ic('upload') + '<input type="file" accept="image/*" data-up="' + esc(r.ResultID) + '" hidden></label>' : '') +
+            '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+      if (i.Recommendation) html += '<div class="block" style="margin-top:10px"><h4>' + esc(t('f.Recommendation')) + '</h4>' + esc(i.Recommendation) + '</div>';
+      if (i.Remarks) html += '<div class="block"><h4>' + esc(t('insp.generalRemarks')) + '</h4>' + esc(i.Remarks) + '</div>';
+      if (i.Status === 'Reviewed') html += '<div class="notice">' + esc(t('insp.reviewedBy', { by: i.ReviewedBy, at: E.fmtDT(i.ReviewedAt) })) + ' — ' + esc(i.ReviewRemarks) + '</div>';
+      if (d.canReview) html += '<div class="field" style="margin-top:10px" data-f="ReviewRemarks"><label>' + esc(t('insp.reviewTitle')) + ' <i class="req">*</i></label><textarea name="ReviewRemarks" maxlength="500"></textarea><div class="ferr"></div></div>';
+      var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      if (i.OverallResult !== 'OK' && i.WorkOrderID) foot.push(E.btn(t('wo.viewWO', { id: i.WorkOrderID }), '', function () { E.pages.wo.openDetail(i.WorkOrderID, onDone); }, 'file'));
+      else if (i.OverallResult !== 'OK' && E.can('wo.create')) foot.push(E.btn(t('wo.makeFrom'), '', function () { m.close(); E.pages.wo.openCreate('Inspection', id, onDone); }, 'file'));
+      if (d.canReview) foot.push(E.btn(t('insp.reviewBtn'), 'primary', function () {
+        var v = $('[name=ReviewRemarks]', m.body).value.trim();
+        if (!v) { E.markErrors(m.body, { code: 'VALIDATION', details: { errors: [{ field: 'ReviewRemarks', rule: 'required' }] } }); return; }
+        E.api('inspection.review', { id: id, remarks: v, UpdatedAt: i.UpdatedAt }).then(function () { E.toast(t('common.saved')); m.close(); if (onDone) onDone(); })
+          .catch(function (e) { if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      }, 'check'));
+      var m = E.modal({ title: t('insp.detail'), size: 'lg', body: html, footer: foot });
+      $$('[data-ph]', m.body).forEach(function (b) {
+        b.onclick = function () {
+          E.api('inspection.photo', { resultId: b.dataset.ph }).then(function (r) {
+            if (!r.dataUrl) return;
+            E.modal({ title: t('insp.photo'), size: 'lg', body: '<img class="thumb" alt="">' }).body.querySelector('img').src = r.dataUrl;
+          }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+        };
+      });
+      $$('[data-up]', m.body).forEach(function (inp) {
+        inp.onchange = function () {
+          var f = inp.files[0]; if (!f) return;
+          E.resizeImage(f, 1280, 0.8).then(function (b64) { return E.api('inspection.uploadPhoto', { resultId: inp.dataset.up, base64: b64 }); })
+            .then(function () { E.toast(t('common.saved')); m.close(); openDetail(id, onDone); })
+            .catch(function (e) { E.toast(E.errText(e), 'err'); });
+        };
+      });
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ tab: hari ini
+  var tf = { q: '', f: '' };
+  function tabToday(box) {
+    E.api('inspection.todayStatus', {}).then(function (d) {
+      var pct = d.summary.total ? Math.round(d.summary.inspected / d.summary.total * 100) : 0;
+      box.innerHTML = '<div class="card" style="padding:12px 14px;margin-bottom:12px"><b>' + esc(t('insp.progress', { done: d.summary.inspected, total: d.summary.total })) + '</b> · ' + pct + '% · NG: ' + d.summary.ng +
+        '<div class="progress"><i style="width:' + pct + '%"></i></div></div>' +
+        '<div class="toolbar"><input class="grow" type="search" id="tq" placeholder="' + esc(t('eq.searchPh')) + '" value="' + esc(tf.q) + '"><select class="mini" id="tfl">' +
+        [['', 'insp.filterAll'], ['p', 'insp.onlyPending'], ['d', 'insp.onlyDone']].map(function (o) { return '<option value="' + o[0] + '"' + (tf.f === o[0] ? ' selected' : '') + '>' + esc(t(o[1])) + '</option>'; }).join('') +
+        '</select><button class="btn" id="tref">' + E.ic('refresh') + '<span>' + esc(t('common.refresh')) + '</span></button></div>' +
+        '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.EquipmentID')) + '</th><th>' + esc(t('f.EquipmentName')) + '</th><th class="hide-sm">' + esc(t('eq.place')) +
+        '</th><th>' + esc(t('f.EquipmentStatus')) + '</th><th>' + esc(t('insp.progress').split(' ')[0] === '' ? '' : t('nav.inspection')) + '</th><th></th></tr></thead><tbody id="tb"></tbody></table></div></div>';
+      function draw() {
+        var q = tf.q.toLowerCase();
+        var rows = d.rows.filter(function (r) {
+          if (tf.f === 'p' && r.inspectedToday) return false;
+          if (tf.f === 'd' && !r.inspectedToday) return false;
+          return !q || [r.EquipmentID, r.EquipmentName, r.CategoryName, r.BuildingName, r.LocationName].join(' ').toLowerCase().indexOf(q) !== -1;
+        });
+        $('#tb', box).innerHTML = rows.length ? rows.map(function (r) {
+          var act = !E.can('inspection.create') ? '' : (r.hasChecklist
+            ? '<button class="btn ' + (r.inspectedToday ? '' : 'primary') + '" data-i="' + esc(r.EquipmentID) + '">' + esc(t(r.inspectedToday ? 'insp.again' : 'insp.inspect')) + '</button>'
+            : '<span class="sub">' + esc(t('insp.noChecklist')) + '</span>');
+          return '<tr><td><b>' + esc(r.EquipmentID) + '</b></td><td>' + esc(r.EquipmentName) + '<div class="sub">' + esc(r.CategoryName) + '</div></td><td class="hide-sm">' + esc(r.BuildingName + ' / ' + r.LocationName) + '</td><td>' +
+            E.statusBadge(r.EquipmentStatus) + '</td><td>' + (r.inspectedToday ? resBadge(r.lastResult) + '<div class="sub">' + esc(r.lastTime + ' ' + r.lastBy) + '</div>' : '<span class="sub">' + esc(t('insp.notYet')) + '</span>') +
+            '</td><td class="actions">' + act + '</td></tr>';
+        }).join('') : '<tr><td colspan="6" class="empty">' + esc(t('common.noData')) + '</td></tr>';
+        $$('[data-i]', box).forEach(function (b) { b.onclick = function () { openForm(b.dataset.i, function () { tabToday(box); }); }; });
+      }
+      $('#tq', box).oninput = function () { tf.q = this.value; draw(); };
+      $('#tfl', box).onchange = function () { tf.f = this.value; draw(); };
+      $('#tref', box).onclick = function () { tabToday(box); };
+      draw();
+    }).catch(function (e) { box.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+  }
+
+  // ================================================================ tab: riwayat
+  var hf = { from: '', to: '', result: '', mine: false };
+  function tabHistory(box) {
+    box.innerHTML = '<div class="toolbar"><label class="sub">' + esc(t('insp.from')) + '</label><input type="date" id="hfrom" value="' + esc(hf.from) + '"><label class="sub">' + esc(t('insp.to')) +
+      '</label><input type="date" id="hto" value="' + esc(hf.to) + '"><select class="mini" id="hres"><option value="">' + esc(t('insp.allResults')) + '</option>' +
+      ['OK', 'NG', 'Critical'].map(function (r) { return '<option value="' + r + '"' + (hf.result === r ? ' selected' : '') + '>' + esc(E.tv('ores', r)) + '</option>'; }).join('') +
+      '</select><label class="sub"><input type="checkbox" id="hmine"' + (hf.mine ? ' checked' : '') + '> ' + esc(t('insp.mine')) + '</label></div><div id="hbody"><div class="empty">' + esc(t('common.loading')) + '</div></div>';
+    function load() {
+      hf.from = $('#hfrom', box).value; hf.to = $('#hto', box).value; hf.result = $('#hres', box).value; hf.mine = $('#hmine', box).checked;
+      E.api('inspection.list', { from: hf.from, to: hf.to, result: hf.result, mine: hf.mine }).then(function (d) {
+        if (!hf.from) { hf.from = d.from; $('#hfrom', box).value = d.from; }
+        if (!hf.to) { hf.to = d.to; $('#hto', box).value = d.to; }
+        $('#hbody', box).innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.InspectionDate')) + '</th><th>' + esc(t('f.EquipmentName')) + '</th><th class="hide-sm">' + esc(t('insp.technician')) +
+          '</th><th>' + esc(t('f.OverallResult')) + '</th><th>NG</th><th>' + esc(t('f.Status')) + '</th></tr></thead><tbody>' +
+          (d.rows.length ? d.rows.map(function (r) {
+            return '<tr class="click" data-id="' + esc(r.InspectionID) + '"><td>' + esc(r.InspectionDate) + '<div class="sub">' + esc(r.InspectionTime) + '</div></td><td><b>' + esc(r.EquipmentID) + '</b><div class="sub">' + esc(r.EquipmentName || '') +
+              '</div></td><td class="hide-sm">' + esc(r.TechnicianName) + '</td><td>' + resBadge(r.OverallResult) + '</td><td>' + r.NGCount + (r.CriticalCount ? ' (' + r.CriticalCount + '!)' : '') + '</td><td>' + stBadge(r.Status) + '</td></tr>';
+          }).join('') : '<tr><td colspan="6" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+        $$('tr[data-id]', box).forEach(function (tr) { tr.style.cursor = 'pointer'; tr.onclick = function () { openDetail(tr.dataset.id, load); }; });
+      }).catch(function (e) { $('#hbody', box).innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+    }
+    ['#hfrom', '#hto', '#hres', '#hmine'].forEach(function (s) { $(s, box).onchange = load; });
+    load();
+  }
+
+  // ================================================================ tab: checklist
+  var ccat = '';
+  function tabChecklist(box) {
+    var cats = S.master.categories.filter(function (c) { return c.Status !== 'Deleted'; });
+    if (!ccat || !cats.some(function (c) { return c.CategoryID === ccat; })) ccat = cats.length ? cats[0].CategoryID : '';
+    box.innerHTML = '<div class="notice">' + esc(t('chk.note')) + '</div><div class="toolbar" style="margin-top:10px"><label class="sub">' + esc(t('chk.category')) + '</label><select id="ccat">' +
+      cats.map(function (c) { return '<option value="' + esc(c.CategoryID) + '"' + (c.CategoryID === ccat ? ' selected' : '') + '>' + esc(c.CategoryName) + '</option>'; }).join('') +
+      '</select><span class="grow"></span><span id="ctools" style="display:flex;gap:8px"></span></div><div id="cbody"></div>';
+    $('#ccat', box).onchange = function () { ccat = this.value; tabChecklist(box); };
+    if (!ccat) return;
+    E.api('checklist.list', { categoryId: ccat }).then(function (rows) {
+      var tools = $('#ctools', box);
+      tools.appendChild(E.btn(t('chk.add'), 'primary', function () { editItem(null); }, 'plus'));
+      if (!rows.filter(function (r) { return r.Status === 'Active'; }).length) tools.appendChild(E.btn(t('chk.copy'), '', copyDlg, 'copy'));
+      $('#cbody', box).innerHTML = rows.length ? '<div class="card"><div class="table-wrap"><table><thead><tr><th>#</th><th>' + esc(t('insp.item')) + '</th><th>' + esc(t('f.ItemType')) + '</th><th>' + esc(t('f.MinValue')) + ' / ' + esc(t('f.MaxValue')) +
+        '</th><th>' + esc(t('f.IsCritical')) + '</th><th>' + esc(t('f.Status')) + '</th><th></th></tr></thead><tbody>' + rows.map(function (r) {
+          var meas = r.ItemType === 'measure';
+          return '<tr><td>' + r.ItemNo + '</td><td>' + esc(chkName(r)) + '</td><td>' + esc(t(meas ? 'chk.typeMeasure' : 'chk.typeCheck')) + '</td><td>' +
+            (meas ? esc((r.MinValue === '' ? '–' : r.MinValue) + ' / ' + (r.MaxValue === '' ? '–' : r.MaxValue) + ' ' + r.Unit) : '') + '</td><td>' + (r.IsCritical ? E.badge('bad', t('common.yes')) : '') + '</td><td>' +
+            E.badge(r.Status === 'Active' ? 'ok' : 'gray', E.tv('status', r.Status)) + '</td><td class="actions"><button class="icon-btn" data-e="' + esc(r.ChecklistID) + '">' + E.ic('edit') + '</button><button class="icon-btn" data-d="' + esc(r.ChecklistID) + '">' + E.ic('trash') + '</button></td></tr>';
+        }).join('') + '</tbody></table></div></div>' : '<div class="empty">' + esc(t('chk.empty')) + '</div>';
+      $$('[data-e]', box).forEach(function (b) { b.onclick = function () { editItem(rows.filter(function (r) { return r.ChecklistID === b.dataset.e; })[0]); }; });
+      $$('[data-d]', box).forEach(function (b) {
+        b.onclick = function () {
+          E.confirmDlg({ title: t('common.delete'), message: t('chk.deleteMsg'), danger: true, confirmLabel: t('common.delete') }).then(function (r) {
+            if (!r) return;
+            E.api('checklist.delete', { id: b.dataset.d }).then(function () { E.toast(t('common.saved')); tabChecklist(box); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+          });
+        };
+      });
+    }).catch(function (e) { $('#cbody', box).innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+
+    function editItem(r) {
+      var cur = r || { ItemType: 'check', Status: 'Active', IsCritical: false };
+      var html = '<div class="form-grid">' +
+        E.fieldHtml({ name: 'ItemName', required: true, full: true, max: 150 }, r ? chkName(r) : '') +
+        E.fieldHtml({ name: 'ItemType', type: 'select', options: [{ v: 'check', l: t('chk.typeCheck') }, { v: 'measure', l: t('chk.typeMeasure') }] }, cur.ItemType) +
+        E.fieldHtml({ name: 'ItemNo', inputmode: 'numeric', max: 3 }, r ? r.ItemNo : '') +
+        E.fieldHtml({ name: 'Unit', max: 20 }, cur.Unit || '') + E.fieldHtml({ name: 'MinValue', inputmode: 'decimal', max: 15 }, cur.MinValue === undefined ? '' : cur.MinValue) +
+        E.fieldHtml({ name: 'MaxValue', inputmode: 'decimal', max: 15 }, cur.MaxValue === undefined ? '' : cur.MaxValue) +
+        E.fieldHtml({ name: 'IsCritical', type: 'select', options: [{ v: 'false', l: t('common.no') }, { v: 'true', l: t('common.yes') }] }, String(!!cur.IsCritical)) +
+        E.fieldHtml({ name: 'Status', type: 'select', options: ['Active', 'Inactive'].map(function (s) { return { v: s, l: E.tv('status', s) }; }) }, cur.Status === 'Deleted' ? 'Inactive' : cur.Status) + '</div>';
+      var save = E.btn(t('common.save'), 'primary', function () {
+        var f = E.readForm(m.body);
+        var data = { ItemName: f.ItemName, ItemType: f.ItemType, ItemNo: f.ItemNo, Unit: f.Unit, MinValue: f.MinValue, MaxValue: f.MaxValue, IsCritical: f.IsCritical === 'true', Status: f.Status };
+        if (r) { data.ChecklistID = r.ChecklistID; data.UpdatedAt = r.UpdatedAt; }
+        E.api('checklist.save', { categoryId: ccat, data: data }).then(function () { E.toast(t('common.saved')); m.close(); tabChecklist(box); })
+          .catch(function (e) { if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      });
+      var m = E.modal({ title: t(r ? 'chk.edit' : 'chk.add'), body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), save] });
+      var typ = $('[name=ItemType]', m.body);
+      function sync() { var meas = typ.value === 'measure'; ['Unit', 'MinValue', 'MaxValue'].forEach(function (n) { $('.field[data-f=' + n + ']', m.body).style.display = meas ? '' : 'none'; }); }
+      typ.onchange = sync; sync();
+    }
+    function copyDlg() {
+      var others = cats.filter(function (c) { return c.CategoryID !== ccat; });
+      var html = '<p class="sub">' + esc(t('chk.copyHelp')) + '</p><div class="field"><label>' + esc(t('chk.copyFrom')) + '</label><select name="from">' +
+        others.map(function (c) { return '<option value="' + esc(c.CategoryID) + '">' + esc(c.CategoryName) + '</option>'; }).join('') + '</select></div>';
+      var go = E.btn(t('chk.copy'), 'primary', function () {
+        E.api('checklist.copy', { fromCategoryId: $('[name=from]', m.body).value, toCategoryId: ccat }).then(function (r) { E.toast(t('chk.copyDone', { n: r.copied })); m.close(); tabChecklist(box); })
+          .catch(function (e) { E.toast(E.errText(e), 'err'); });
+      });
+      var m = E.modal({ title: t('chk.copy'), size: 'sm', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go] });
+    }
+  }
+
+  // ================================================================ halaman
+  E.pages.inspection = {
+    openForm: openForm,
+    render: function (el) {
+      var tabs = [['today', 'insp.tabToday', tabToday], ['history', 'insp.tabHistory', tabHistory]];
+      if (E.can('checklist.manage')) tabs.push(['checklist', 'insp.tabChecklist', tabChecklist]);
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.inspection')) + '</h1></div><div class="tabs">' + tabs.map(function (x) { return '<button data-t="' + x[0] + '">' + esc(t(x[1])) + '</button>'; }).join('') + '</div><div id="itab"></div>';
+      function show(k) {
+        $$('.tabs button', el).forEach(function (b) { b.classList.toggle('on', b.dataset.t === k); });
+        var box = $('#itab', el); box.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+        tabs.filter(function (x) { return x[0] === k; })[0][2](box);
+      }
+      $$('.tabs button', el).forEach(function (b) { b.onclick = function () { show(b.dataset.t); }; });
+      show((S.params && S.params.tab) || 'today');
+    }
+  };
+})();
+</script>

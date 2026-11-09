@@ -1,0 +1,237 @@
+<script>
+/* EMMS - PM.html : Preventive Maintenance (Phase 3): daftar kerja, jadwal, riwayat & approval */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, S = E.S, $ = E.$, $$ = E.$$;
+
+  var STATE_BADGE = { Overdue: 'bad', DueSoon: 'warn', Scheduled: 'info', Inactive: 'gray' };
+  function stBadge(s) { return E.badge(STATE_BADGE[s] || 'gray', t('pm.state.' + s)); }
+  function aprBadge(a) { return E.badge(a === 'Approved' ? 'ok' : (a === 'Rejected' ? 'bad' : 'warn'), t('pm.apr.' + a)); }
+  function freqText(r) { return r.Frequency === 'Custom' ? t('pm.every', { n: r.ScheduleRule }) : t('pm.freq.' + r.Frequency); }
+  function dueText(r) {
+    if (r.state === 'Inactive' || r.daysLeft === null) return '';
+    if (r.daysLeft < 0) return t('pm.daysLate', { n: -r.daysLeft });
+    if (r.daysLeft === 0) return t('pm.dueToday');
+    return t('pm.daysLeft', { n: r.daysLeft });
+  }
+
+  // ================================================================ pelaksanaan
+  function openExecute(scheduleId, onDone) {
+    E.api('pm.form', { scheduleId: scheduleId }).then(function (d) {
+      var s = d.schedule, busy = false, files = { before: null, after: null };
+      var html = '<div class="block"><b>' + esc(s.EquipmentID + ' · ' + s.EquipmentName) + '</b><div class="sub">' + esc(s.PMTitle) + ' · ' + esc(freqText(s)) + '</div>' +
+        '<div class="sub">' + esc(t('f.PlannedDate')) + ': <b>' + esc(s.NextDueDate) + '</b> ' + stBadge(s.state) + '</div></div>';
+      if (s.Instructions) html += '<div class="block"><h4>' + esc(t('pm.instructions')) + '</h4>' + esc(s.Instructions) + '</div>';
+      html += '<div class="grid" id="pmf">' +
+        '<div class="field" data-f="ActualDate"><label>' + esc(t('f.ActualDate')) + ' <i class="req">*</i></label><input type="date" name="ActualDate" value="' + esc(d.today) + '" min="' + esc(d.minDate) + '" max="' + esc(d.today) + '"><div class="ferr"></div></div>' +
+        '<div class="field" data-f="StartTime"><label>' + esc(t('f.StartTime')) + ' <i class="req">*</i></label><input type="time" name="StartTime"><div class="ferr"></div></div>' +
+        '<div class="field" data-f="FinishTime"><label>' + esc(t('f.FinishTime')) + ' <i class="req">*</i></label><input type="time" name="FinishTime" value="' + esc(d.now) + '"><div class="ferr"></div></div>' +
+        E.fieldHtml({ name: 'MaintenanceResult', type: 'select', required: true, options: d.results.map(function (r) { return { v: r, l: t('pm.res.' + r) }; }) }, 'Done') +
+        E.fieldHtml({ name: 'MeasurementBefore', full: true, max: 300 }, '') + E.fieldHtml({ name: 'MeasurementAfter', full: true, max: 300 }, '') +
+        E.fieldHtml({ name: 'Remarks', type: 'textarea', full: true, max: 1000 }, '') + '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">' + ['before', 'after'].map(function (k) {
+          return '<div><label class="btn" style="cursor:pointer">' + E.ic('upload') + '<span>' + esc(t(k === 'before' ? 'pm.photoBefore' : 'pm.photoAfter')) +
+            '</span><input type="file" accept="image/*" capture="environment" data-k="' + k + '" hidden></label> <span class="sub" data-n="' + k + '"></span></div>';
+        }).join('') + '</div>';
+      var submit = E.btn(t('common.save'), 'primary', doSubmit, 'check');
+      var m = E.modal({ title: t('pm.formTitle'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), submit], sticky: true });
+      $$('[data-k]', m.body).forEach(function (inp) {
+        inp.onchange = function () { files[inp.dataset.k] = inp.files[0] || null; $('[data-n=' + inp.dataset.k + ']', m.body).textContent = files[inp.dataset.k] ? files[inp.dataset.k].name : ''; };
+      });
+      function doSubmit() {
+        if (busy) return;
+        var f = E.readForm($('#pmf', m.body));
+        f.PMScheduleID = s.PMScheduleID;
+        busy = true; submit.disabled = true;
+        E.api('pm.complete', f).then(function (res) {
+          var jobs = ['before', 'after'].filter(function (k) { return files[k]; }), failed = 0;
+          return jobs.reduce(function (p, k) {
+            return p.then(function () {
+              return E.resizeImage(files[k], 1280, 0.8).then(function (b64) { return E.api('pm.uploadPhoto', { pmId: res.PMID, kind: k, base64: b64 }); }).catch(function () { failed++; });
+            });
+          }, Promise.resolve()).then(function () { return { res: res, failed: failed }; });
+        }).then(function (o) {
+          m.close();
+          E.toast(t('pm.saved', { date: o.res.NextDueDate }));
+          if (o.failed) E.toast(t('pm.photoFail', { n: o.failed }), 'err');
+          if (onDone) onDone();
+        }).catch(function (err) {
+          busy = false; submit.disabled = false;
+          if (!E.markErrors(m.body, err)) E.toast(E.errText(err), 'err');
+          if (err && err.code === 'CONFLICT' && err.details && (err.details.rule === 'alreadyDone' || err.details.rule === 'inactive') && onDone) { m.close(); onDone(); }
+        });
+      }
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ tab: daftar kerja
+  var wf = { f: '', q: '' };
+  function tabWork(box) {
+    E.api('pm.schedule.list', {}).then(function (d) {
+      var rows = d.rows.filter(function (r) { return r.state !== 'Inactive'; });
+      var cnt = { Overdue: 0, DueSoon: 0 };
+      rows.forEach(function (r) { if (cnt[r.state] !== undefined) cnt[r.state]++; });
+      box.innerHTML = '<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="card stat bad"><div><div class="v">' + cnt.Overdue + '</div><div class="l">' + esc(t('pm.state.Overdue')) + '</div></div></div>' +
+        '<div class="card stat warn"><div><div class="v">' + cnt.DueSoon + '</div><div class="l">' + esc(t('pm.state.DueSoon')) + '</div></div></div></div>' +
+        '<div class="toolbar"><input class="grow" id="wq" type="search" placeholder="' + esc(t('eq.searchPh')) + '" value="' + esc(wf.q) + '"><select class="mini" id="wf">' +
+        [['', 'pm.fAll'], ['Overdue', 'pm.fOverdue'], ['DueSoon', 'pm.fSoon'], ['mine', 'pm.fMine']].map(function (o) { return '<option value="' + o[0] + '"' + (wf.f === o[0] ? ' selected' : '') + '>' + esc(t(o[1])) + '</option>'; }).join('') +
+        '</select><button class="btn" id="wref">' + E.ic('refresh') + '<span>' + esc(t('common.refresh')) + '</span></button></div><div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.EquipmentName')) + '</th><th>' + esc(t('f.PMTitle')) +
+        '</th><th>' + esc(t('f.NextDueDate')) + '</th><th class="hide-sm">' + esc(t('f.AssignedTechnician')) + '</th><th></th></tr></thead><tbody id="wb"></tbody></table></div></div>';
+      function draw() {
+        var q = wf.q.toLowerCase();
+        var list = rows.filter(function (r) {
+          if (wf.f === 'mine' && !r.isMine) return false;
+          if ((wf.f === 'Overdue' || wf.f === 'DueSoon') && r.state !== wf.f) return false;
+          return !q || [r.EquipmentID, r.EquipmentName, r.PMTitle, r.TechnicianName, r.LocationName].join(' ').toLowerCase().indexOf(q) !== -1;
+        });
+        $('#wb', box).innerHTML = list.length ? list.map(function (r) {
+          return '<tr><td><b>' + esc(r.EquipmentID) + '</b><div class="sub">' + esc(r.EquipmentName) + ' · ' + esc(r.LocationName) + '</div></td><td>' + esc(r.PMTitle) + '<div class="sub">' + esc(freqText(r)) + '</div></td><td>' +
+            esc(r.NextDueDate) + '<div>' + stBadge(r.state) + ' <span class="sub">' + esc(dueText(r)) + '</span></div></td><td class="hide-sm">' + esc(r.TechnicianName || t('pm.noTech')) + '</td><td class="actions">' +
+            (E.can('pm.execute') ? '<button class="btn ' + (r.state === 'Overdue' || r.state === 'DueSoon' ? 'primary' : '') + '" data-x="' + esc(r.PMScheduleID) + '">' + esc(t('pm.do')) + '</button>' : '') + '</td></tr>';
+        }).join('') : '<tr><td colspan="5" class="empty">' + esc(t('pm.noWork')) + '</td></tr>';
+        $$('[data-x]', box).forEach(function (b) { b.onclick = function () { openExecute(b.dataset.x, function () { tabWork(box); }); }; });
+      }
+      $('#wq', box).oninput = function () { wf.q = this.value; draw(); };
+      $('#wf', box).onchange = function () { wf.f = this.value; draw(); };
+      $('#wref', box).onclick = function () { tabWork(box); };
+      draw();
+    }).catch(function (e) { box.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+  }
+
+  // ================================================================ tab: jadwal
+  function tabSchedule(box) {
+    Promise.all([E.api('pm.schedule.list', {}), E.api('pm.meta', {}), E.api('equipment.list', {})]).then(function (res) {
+      var d = res[0], meta = res[1], eqs = (res[2].rows || res[2]).filter(function (e) { return e.Status === undefined || e.Status === 'Active'; });
+      box.innerHTML = '<div class="notice">' + esc(t('pm.calendarNote')) + '</div><div class="toolbar" style="margin-top:10px"><span class="grow"></span><span id="stools"></span></div>' +
+        '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.EquipmentName')) + '</th><th>' + esc(t('f.PMTitle')) + '</th><th>' + esc(t('f.Frequency')) + '</th><th>' + esc(t('f.NextDueDate')) +
+        '</th><th class="hide-sm">' + esc(t('f.LastDoneDate')) + '</th><th class="hide-sm">' + esc(t('f.AssignedTechnician')) + '</th><th></th></tr></thead><tbody>' +
+        (d.rows.length ? d.rows.map(function (r) {
+          return '<tr><td><b>' + esc(r.EquipmentID) + '</b><div class="sub">' + esc(r.EquipmentName) + '</div></td><td>' + esc(r.PMTitle) + '</td><td>' + esc(freqText(r)) + '</td><td>' + esc(r.NextDueDate) + ' ' + stBadge(r.state) +
+            '</td><td class="hide-sm">' + esc(r.LastDoneDate || '-') + '</td><td class="hide-sm">' + esc(r.TechnicianName || t('pm.noTech')) + '</td><td class="actions"><button class="icon-btn" data-e="' + esc(r.PMScheduleID) + '">' + E.ic('edit') +
+            '</button><button class="icon-btn" data-d="' + esc(r.PMScheduleID) + '">' + E.ic('trash') + '</button></td></tr>';
+        }).join('') : '<tr><td colspan="7" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+      $('#stools', box).appendChild(E.btn(t('pm.addSchedule'), 'primary', function () { edit(null); }, 'plus'));
+      $$('[data-e]', box).forEach(function (b) { b.onclick = function () { edit(d.rows.filter(function (r) { return r.PMScheduleID === b.dataset.e; })[0]); }; });
+      $$('[data-d]', box).forEach(function (b) {
+        b.onclick = function () {
+          E.confirmDlg({ title: t('common.delete'), message: t('pm.deleteMsg'), danger: true, confirmLabel: t('common.delete') }).then(function (ok) {
+            if (!ok) return;
+            E.api('pm.schedule.delete', { id: b.dataset.d }).then(function () { E.toast(t('common.saved')); tabSchedule(box); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+          });
+        };
+      });
+      function edit(r) {
+        var cur = r || { Frequency: 'Monthly', Status: 'Active', StartDate: d.today, EquipmentID: '', AssignedTechnician: '' };
+        var html = '<div class="grid">' +
+          E.fieldHtml({ name: 'EquipmentID', type: 'select', required: true, full: true, options: [{ v: '', l: '-' }].concat(eqs.map(function (e) { return { v: e.EquipmentID, l: e.EquipmentID + ' · ' + e.EquipmentName }; })) }, cur.EquipmentID) +
+          E.fieldHtml({ name: 'PMTitle', required: true, full: true, max: 150 }, cur.PMTitle || '') +
+          E.fieldHtml({ name: 'Frequency', type: 'select', required: true, options: meta.frequencies.map(function (f) { return { v: f, l: t('pm.freq.' + f) }; }) }, cur.Frequency) +
+          E.fieldHtml({ name: 'ScheduleRule', inputmode: 'numeric', max: 3 }, cur.ScheduleRule || '') +
+          E.fieldHtml({ name: 'AssignedTechnician', type: 'select', options: [{ v: '', l: t('pm.noTech') }].concat(meta.technicians.map(function (u) { return { v: u.email.toLowerCase(), l: u.name + ' (' + u.role + ')' }; })) }, (cur.AssignedTechnician || '').toLowerCase()) +
+          E.fieldHtml({ name: 'StartDate', type: 'date', required: true, max: 10 }, cur.StartDate || '') +
+          (r ? E.fieldHtml({ name: 'NextDueDate', type: 'date', max: 10 }, cur.NextDueDate || '') : '') +
+          E.fieldHtml({ name: 'Status', type: 'select', options: ['Active', 'Inactive'].map(function (s) { return { v: s, l: E.tv('status', s) }; }) }, cur.Status === 'Deleted' ? 'Inactive' : cur.Status) +
+          E.fieldHtml({ name: 'Instructions', type: 'textarea', full: true, max: 1000 }, cur.Instructions || '') + '</div>';
+        var save = E.btn(t('common.save'), 'primary', function () {
+          var data = E.readForm(m.body);
+          if (r) { data.PMScheduleID = r.PMScheduleID; data.UpdatedAt = r.UpdatedAt; }
+          save.disabled = true;
+          E.api('pm.schedule.save', { data: data }).then(function () { E.toast(t('common.saved')); m.close(); tabSchedule(box); })
+            .catch(function (e) { save.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+        });
+        var m = E.modal({ title: t(r ? 'pm.editSchedule' : 'pm.addSchedule'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), save] });
+        var fq = $('[name=Frequency]', m.body);
+        function sync() { $('.field[data-f=ScheduleRule]', m.body).style.display = fq.value === 'Custom' ? '' : 'none'; }
+        fq.onchange = sync; sync();
+      }
+    }).catch(function (e) { box.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+  }
+
+  // ================================================================ detail & approval
+  function openDetail(id, onDone) {
+    E.api('pm.get', { id: id }).then(function (d) {
+      var r = d.pm;
+      var html = '<div class="block"><b>' + esc(r.EquipmentID + ' · ' + r.EquipmentName) + '</b><div class="sub">' + esc(r.PMTitle) + '</div><div style="margin-top:6px">' + aprBadge(r.ApprovalStatus) + ' ' +
+        E.badge('info', t('pm.res.' + r.MaintenanceResult)) + '</div></div><div class="dl">' + [
+          ['f.PlannedDate', r.PlannedDate], ['f.ActualDate', r.ActualDate], ['f.StartTime', r.StartTime], ['f.FinishTime', r.FinishTime], ['insp.technician', r.Technician],
+          ['f.MeasurementBefore', r.MeasurementBefore], ['f.MeasurementAfter', r.MeasurementAfter], ['f.Remarks', r.Remarks]
+        ].map(function (x) { return '<div><dt>' + esc(t(x[0])) + '</dt><dd>' + esc(x[1] || '-') + '</dd></div>'; }).join('') + '</div>';
+      if (r.Instructions) html += '<div class="block"><h4>' + esc(t('pm.instructions')) + '</h4>' + esc(r.Instructions) + '</div>';
+      html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">' + ['before', 'after'].map(function (k) {
+        var has = k === 'before' ? r.hasBefore : r.hasAfter;
+        return '<span>' + esc(t(k === 'before' ? 'pm.photoBefore' : 'pm.photoAfter')) + ': ' + (has ? '<button class="btn" data-ph="' + k + '">' + E.ic('eye') + '<span>' + esc(t('pm.viewPhoto')) + '</span></button>' : '<span class="sub">-</span>') +
+          (d.canPhoto ? ' <label class="btn" style="cursor:pointer">' + E.ic('upload') + '<span>' + esc(t('pm.addPhoto')) + '</span><input type="file" accept="image/*" data-up="' + k + '" hidden></label>' : '') + '</span>';
+      }).join('') + '</div>';
+      if (r.ApprovalStatus !== 'Pending') html += '<div class="notice">' + esc(t('pm.apr.' + r.ApprovalStatus)) + ': ' + esc(t('pm.approvedBy', { by: r.ApprovedBy, at: E.fmtDT(r.ApprovedAt) })) + (r.ApprovalRemarks ? ' — ' + esc(r.ApprovalRemarks) : '') + '</div>';
+      else if (E.can('pm.approve') && !d.canApprove) html += '<div class="notice">' + esc(t('pm.selfNote')) + '</div>';
+      if (d.canApprove) html += '<div class="field" data-f="ApprovalRemarks" style="margin-top:10px"><label>' + esc(t('f.ApprovalRemarks')) + '</label><textarea name="ApprovalRemarks" maxlength="500"></textarea><div class="ferr"></div></div><p class="sub">' + esc(t('pm.rejectNote')) + '</p>';
+      var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      if (r.MaintenanceResult !== 'Done' && r.WorkOrderID) foot.push(E.btn(t('wo.viewWO', { id: r.WorkOrderID }), '', function () { E.pages.wo.openDetail(r.WorkOrderID, onDone); }, 'file'));
+      else if (r.MaintenanceResult !== 'Done' && E.can('wo.create')) foot.push(E.btn(t('wo.makeFrom'), '', function () { m.close(); E.pages.wo.openCreate('PM', id, onDone); }, 'file'));
+      function decide(decision) {
+        var rem = ($('[name=ApprovalRemarks]', m.body) || {}).value || '';
+        E.api('pm.approve', { id: id, decision: decision, remarks: rem.trim(), UpdatedAt: r.UpdatedAt }).then(function () { E.toast(t('common.saved')); m.close(); if (onDone) onDone(); })
+          .catch(function (e) { if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      }
+      if (d.canApprove) { foot.push(E.btn(t('pm.reject'), 'danger', function () { decide('Rejected'); }, 'x')); foot.push(E.btn(t('pm.approve'), 'primary', function () { decide('Approved'); }, 'check')); }
+      var m = E.modal({ title: t('pm.detail'), size: 'lg', body: html, footer: foot });
+      $$('[data-ph]', m.body).forEach(function (b) {
+        b.onclick = function () {
+          E.api('pm.photo', { pmId: id, kind: b.dataset.ph }).then(function (x) {
+            if (!x.dataUrl) return;
+            E.modal({ title: t(b.dataset.ph === 'before' ? 'pm.photoBefore' : 'pm.photoAfter'), size: 'lg', body: '<img class="thumb" alt="">' }).body.querySelector('img').src = x.dataUrl;
+          }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+        };
+      });
+      $$('[data-up]', m.body).forEach(function (inp) {
+        inp.onchange = function () {
+          var f = inp.files[0]; if (!f) return;
+          E.resizeImage(f, 1280, 0.8).then(function (b64) { return E.api('pm.uploadPhoto', { pmId: id, kind: inp.dataset.up, base64: b64 }); })
+            .then(function () { E.toast(t('common.saved')); m.close(); openDetail(id, onDone); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+        };
+      });
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ tab: riwayat
+  var hf = { from: '', to: '', approval: '', mine: false };
+  function tabHistory(box) {
+    box.innerHTML = '<div class="toolbar"><label class="sub">' + esc(t('insp.from')) + '</label><input type="date" id="hfrom" value="' + esc(hf.from) + '"><label class="sub">' + esc(t('insp.to')) + '</label><input type="date" id="hto" value="' + esc(hf.to) +
+      '"><select class="mini" id="hap"><option value="">' + esc(t('pm.allApproval')) + '</option>' + ['Pending', 'Approved', 'Rejected'].map(function (a) { return '<option value="' + a + '"' + (hf.approval === a ? ' selected' : '') + '>' + esc(t('pm.apr.' + a)) + '</option>'; }).join('') +
+      '</select><label class="sub"><input type="checkbox" id="hmine"' + (hf.mine ? ' checked' : '') + '> ' + esc(t('insp.mine')) + '</label></div><div id="hbody"><div class="empty">' + esc(t('common.loading')) + '</div></div>';
+    function load() {
+      hf.from = $('#hfrom', box).value; hf.to = $('#hto', box).value; hf.approval = $('#hap', box).value; hf.mine = $('#hmine', box).checked;
+      E.api('pm.list', { from: hf.from, to: hf.to, approval: hf.approval, mine: hf.mine }).then(function (d) {
+        if (!hf.from) { hf.from = d.from; $('#hfrom', box).value = d.from; }
+        if (!hf.to) { hf.to = d.to; $('#hto', box).value = d.to; }
+        $('#hbody', box).innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.ActualDate')) + '</th><th>' + esc(t('f.EquipmentName')) + '</th><th>' + esc(t('f.PMTitle')) + '</th><th class="hide-sm">' + esc(t('insp.technician')) +
+          '</th><th>' + esc(t('f.MaintenanceResult')) + '</th><th>' + esc(t('f.ApprovalStatus')) + '</th></tr></thead><tbody>' + (d.rows.length ? d.rows.map(function (r) {
+            return '<tr data-id="' + esc(r.PMID) + '" style="cursor:pointer"><td>' + esc(r.ActualDate) + '<div class="sub">' + esc(r.StartTime + '–' + r.FinishTime) + '</div></td><td><b>' + esc(r.EquipmentID) + '</b><div class="sub">' + esc(r.EquipmentName) + '</div></td><td>' + esc(r.PMTitle) +
+              '</td><td class="hide-sm">' + esc(r.Technician) + '</td><td>' + esc(t('pm.res.' + r.MaintenanceResult)) + '</td><td>' + aprBadge(r.ApprovalStatus) + '</td></tr>';
+          }).join('') : '<tr><td colspan="6" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+        $$('tr[data-id]', box).forEach(function (tr) { tr.onclick = function () { openDetail(tr.dataset.id, load); }; });
+      }).catch(function (e) { $('#hbody', box).innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+    }
+    ['#hfrom', '#hto', '#hap', '#hmine'].forEach(function (s) { $(s, box).onchange = load; });
+    load();
+  }
+
+  // ================================================================ halaman
+  E.pages.pm = {
+    openExecute: openExecute,
+    render: function (el) {
+      var tabs = [['work', 'pm.tabWork', tabWork]];
+      if (E.can('pm.schedule')) tabs.push(['schedule', 'pm.tabSchedule', tabSchedule]);
+      tabs.push(['history', 'pm.tabHistory', tabHistory]);
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.pm')) + '</h1></div><div class="tabs">' + tabs.map(function (x) { return '<button data-t="' + x[0] + '">' + esc(t(x[1])) + '</button>'; }).join('') + '</div><div id="ptab"></div>';
+      function show(k) {
+        $$('.tabs button', el).forEach(function (b) { b.classList.toggle('on', b.dataset.t === k); });
+        var box = $('#ptab', el); box.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+        tabs.filter(function (x) { return x[0] === k; })[0][2](box);
+      }
+      $$('.tabs button', el).forEach(function (b) { b.onclick = function () { show(b.dataset.t); }; });
+      show((S.params && S.params.tab) || 'work');
+    }
+  };
+})();
+</script>

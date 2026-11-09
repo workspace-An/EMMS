@@ -1,0 +1,118 @@
+<script>
+/* EMMS - Settings.html : Umum, Master Data, Audit Log, Sistem */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, S = E.S, $ = E.$, $$ = E.$$;
+
+  // ---- konfigurasi UI master data
+  function MD() {
+    var m = S.master;
+    var name = function (arr, k, n) { return function (id) { var x = arr.filter(function (r) { return r[k] === id; })[0]; return x ? x[n] : ''; }; };
+    return {
+      building: { title: 'settings.mdBuildings', rows: m.buildings, cols: [['BuildingName'], ['FactoryID', name(m.factories, 'FactoryID', 'FactoryName')], ['Description']],
+        fields: [{ name: 'FactoryID', type: 'select', required: true, options: m.factories.map(function (f) { return { v: f.FactoryID, l: f.FactoryName }; }) }, { name: 'BuildingName', required: true }, { name: 'Description', type: 'textarea', full: true }], pk: 'BuildingID' },
+      location: { title: 'settings.mdLocations', rows: m.locations, cols: [['LocationName'], ['BuildingID', name(m.buildings, 'BuildingID', 'BuildingName')], ['ProductionArea']],
+        fields: [{ name: 'BuildingID', type: 'select', required: true, options: m.buildings.map(function (b) { return { v: b.BuildingID, l: b.BuildingName }; }) }, { name: 'LocationName', required: true }, { name: 'ProductionArea' }, { name: 'Description', type: 'textarea', full: true }], pk: 'LocationID' },
+      category: { title: 'settings.mdCategories', rows: m.categories, cols: [['CategoryName'], ['Code'], ['Description']],
+        fields: [{ name: 'CategoryName', required: true, full: true }, { name: 'Code', required: true, max: 12 }, { name: 'InspectionType' }, { name: 'Description', type: 'textarea', full: true }], pk: 'CategoryID' },
+      factory: { title: 'settings.mdFactories', rows: m.factories, cols: [['FactoryName'], ['Address'], ['Description']],
+        fields: [{ name: 'FactoryName', required: true, full: true }, { name: 'Address', full: true }, { name: 'Description', type: 'textarea', full: true }], pk: 'FactoryID' }
+    };
+  }
+
+  function mdForm(ent, cfg, rec, done) {
+    var edit = !!rec, v = rec || {};
+    var save = E.btn(t('common.save'), 'primary', function () {
+      var data = E.readForm(m.body); if (edit) { data[cfg.pk] = rec[cfg.pk]; data.UpdatedAt = rec.UpdatedAt; }
+      save.disabled = true;
+      E.api('master.save', { entity: ent, data: data }).then(function () { return E.reloadMaster(); }).then(function () { m.close(); E.toast(t('common.saved'), 'ok'); done(); })
+        .catch(function (x) { save.disabled = false; if (!E.markErrors(m.body, x)) E.toast(E.errText(x), 'err'); });
+    });
+    var m = E.modal({ title: t(cfg.title), size: 'sm', body: '<div class="grid">' + cfg.fields.map(function (f) { return E.fieldHtml(f, v[f.name]); }).join('') + '</div>', footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), save] });
+  }
+
+  function tabMaster(box) {
+    var cur = 'building', manage = E.can('master.manage');
+    function draw() {
+      var all = MD(), cfg = all[cur];
+      box.innerHTML = '<div class="toolbar">' + ['building', 'location', 'category', 'factory'].map(function (k) { return '<button class="btn sm' + (k === cur ? ' primary' : '') + '" data-k="' + k + '">' + esc(t(all[k].title)) + '</button>'; }).join('') +
+        '<span class="grow"></span><span id="mdadd"></span></div><div class="card"><div class="table-wrap"><table><thead><tr>' + cfg.cols.map(function (c) { return '<th>' + esc(t('f.' + c[0])) + '</th>'; }).join('') + '<th></th></tr></thead><tbody>' +
+        (cfg.rows.length ? cfg.rows.map(function (r, i) {
+          return '<tr>' + cfg.cols.map(function (c) { return '<td>' + esc(c[1] ? c[1](r[c[0]]) : r[c[0]]) + '</td>'; }).join('') + '<td class="actions">' + (manage ? '<button class="icon-btn" data-e="' + i + '">' + E.ic('edit') + '</button><button class="icon-btn" data-d="' + i + '">' + E.ic('trash') + '</button>' : '') + '</td></tr>';
+        }).join('') : '<tr><td class="empty" colspan="9">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+      $$('[data-k]', box).forEach(function (b) { b.onclick = function () { cur = b.dataset.k; draw(); }; });
+      if (manage) {
+        $('#mdadd', box).appendChild(E.btn(t('common.add'), 'primary', function () { mdForm(cur, cfg, null, draw); }, 'plus'));
+        $$('[data-e]', box).forEach(function (b) { b.onclick = function () { mdForm(cur, cfg, cfg.rows[+b.dataset.e], draw); }; });
+        $$('[data-d]', box).forEach(function (b) {
+          b.onclick = function () {
+            var r = cfg.rows[+b.dataset.d];
+            E.confirmDlg({ title: t('common.delete'), message: t('settings.mdDeleteMsg'), danger: true, confirmLabel: t('common.delete') }).then(function (ok) {
+              if (!ok) return;
+              E.api('master.delete', { entity: cur, id: r[cfg.pk] }).then(function () { return E.reloadMaster(); }).then(function () { E.toast(t('common.saved'), 'ok'); draw(); })
+                .catch(function (x) { E.toast(E.errText(x), 'err'); });
+            });
+          };
+        });
+      }
+    }
+    draw();
+  }
+
+  function tabGeneral(box) {
+    var edit = E.can('settings.edit');
+    E.api('settings.get', {}).then(function (d) {
+      var v = d.values, langs = [{ v: 'id', l: 'Bahasa Indonesia' }, { v: 'en', l: 'English' }, { v: 'zh', l: '中文' }], tf = [{ v: 'TRUE', l: t('common.yes') }, { v: 'FALSE', l: t('common.no') }];
+      var warn = d.detectedUrl && v.WEBAPP_URL && d.detectedUrl !== v.WEBAPP_URL ? '<div class="notice">' + esc(t('settings.urlMismatch', { url: d.detectedUrl })) + '</div>' : '';
+      box.innerHTML = warn + '<div class="card"><div class="card-b"><div class="grid">' + [
+        { name: 'COMPANY_NAME', required: true, full: true }, { name: 'COMPANY_ADDRESS', full: true }, { name: 'DEFAULT_LANGUAGE', type: 'select', options: langs },
+        { name: 'SESSION_DAYS', inputmode: 'numeric' }, { name: 'ALLOW_GOOGLE_AUTOLOGIN', type: 'select', options: tf }, { name: 'PM_LEAD_DAYS', inputmode: 'numeric' }, { name: 'PM_CALENDAR_ENABLED', type: 'select', options: tf }, { name: 'WEBAPP_URL', full: true, max: 300 }
+      ].map(function (f) { if (!edit) f.readonly = f.disabled = true; return E.fieldHtml(f, v[f.name]); }).join('') + '</div><p class="muted">' + esc(t('settings.urlHelp')) + (d.detectedUrl && !v.WEBAPP_URL ? ' <a id="useurl" style="color:var(--blue);cursor:pointer">' + esc(t('settings.useDetected')) + '</a>' : '') + '</p><div id="sgbtn"></div></div></div>';
+      if ($('#useurl', box)) $('#useurl', box).onclick = function () { $('[name=WEBAPP_URL]', box).value = d.detectedUrl; };
+      if (edit) {
+        var b = E.btn(t('common.save'), 'primary', function () {
+          b.disabled = true;
+          E.api('settings.update', E.readForm(box)).then(function (r) {
+            b.disabled = false; S.settings.COMPANY_NAME = r.values.COMPANY_NAME; S.settings.COMPANY_ADDRESS = r.values.COMPANY_ADDRESS; if (r.values.WEBAPP_URL) S.webAppUrl = r.values.WEBAPP_URL; E.toast(t('common.saved'), 'ok');
+          }).catch(function (x) { b.disabled = false; if (!E.markErrors(box, x)) E.toast(E.errText(x), 'err'); });
+        });
+        $('#sgbtn', box).appendChild(b);
+      }
+    }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+  }
+
+  function tabAudit(box) {
+    E.api('audit.list', { limit: 200 }).then(function (rows) {
+      box.innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('audit.time')) + '</th><th>' + esc(t('f.Email')) + '</th><th>' + esc(t('audit.action')) + '</th><th>' + esc(t('audit.entity')) + '</th><th class="hide-sm">' + esc(t('audit.details')) + '</th><th>' + esc(t('audit.result')) + '</th></tr></thead><tbody>' +
+        (rows.length ? rows.map(function (a) {
+          return '<tr><td class="sub" style="white-space:nowrap">' + esc(E.fmtDT(a.EventTime)) + '</td><td>' + esc(a.UserEmail) + '</td><td><b>' + esc(a.Action) + '</b></td><td>' + esc(a.Entity + ' ' + a.EntityID) + '</td><td class="hide-sm sub" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(a.Details) + '">' + esc(a.Details) + '</td><td>' + E.badge(a.Result === 'OK' ? 'ok' : 'bad', a.Result) + '</td></tr>';
+        }).join('') : '<tr><td colspan="6" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+    }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+  }
+
+  function tabSystem(box) {
+    E.api('settings.diagnose', {}).then(function (d) {
+      var row = function (k, v) { return '<div><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>'; };
+      box.innerHTML = '<div class="card"><div class="card-b"><dl class="dl">' + row('Version', esc((window.__BOOT || {}).version)) +
+        row(t('sys.activeEmail'), d.activeUserEmailAvailable ? E.badge('ok', t('common.yes')) : E.badge('gray', t('common.no'))) + row(t('sys.mode'), esc(d.recommendedMode)) +
+        row(t('sys.mailQuota'), esc(d.mailQuotaRemaining)) + row(t('sys.autologin'), esc(d.autoLoginSetting)) + row('Web App URL', esc(S.webAppUrl || '-')) + '</dl><p class="muted">' + esc(t('sys.note')) + '</p></div></div>';
+    }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+  }
+
+  E.pages.settings = {
+    render: function (el) {
+      var tabs = [['general', 'settings.general', tabGeneral], ['master', 'settings.master', tabMaster]];
+      if (E.can('audit.view')) tabs.push(['audit', 'settings.audit', tabAudit]);
+      if (E.can('settings.edit')) tabs.push(['system', 'settings.system', tabSystem]);
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.settings')) + '</h1></div><div class="tabs">' + tabs.map(function (x) { return '<button data-t="' + x[0] + '">' + esc(t(x[1])) + '</button>'; }).join('') + '</div><div id="stab"></div>';
+      function show(k) {
+        $$('.tabs button', el).forEach(function (b) { b.classList.toggle('on', b.dataset.t === k); });
+        var box = $('#stab', el); box.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+        tabs.filter(function (x) { return x[0] === k; })[0][2](box);
+      }
+      $$('.tabs button', el).forEach(function (b) { b.onclick = function () { show(b.dataset.t); }; });
+      show((S.params && S.params.tab) || 'general');
+    }
+  };
+})();
+</script>

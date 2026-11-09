@@ -1,0 +1,150 @@
+<script>
+/* EMMS - WO.html : Work Order (Phase 4): buat dari sumber, persetujuan, penugasan, tugas, verifikasi */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, $ = E.$, $$ = E.$$;
+
+  var SB = { Requested: 'warn', Approved: 'info', 'In Progress': 'info', Completed: 'ok', Closed: 'gray', Rejected: 'bad', Cancelled: 'gray' };
+  function stBadge(s) { return E.badge(SB[s] || 'gray', t('wost.' + s)); }
+
+  // ================================================================ buat WO
+  function openCreate(sourceType, sourceId, onDone) {
+    var calls = [E.api('wo.prefill', { sourceType: sourceType, sourceId: sourceId || '' }), E.api('equipment.list', {})];
+    Promise.all(calls).then(function (res) {
+      var pf = res[0], eqs = res[1].filter(function (e) { return e.Status === undefined || e.Status === 'Active'; });
+      var fromSource = sourceType !== 'Manual';
+      var html = '<div class="notice">' + esc(t('wosrc.' + sourceType)) + (sourceId ? ' · ' + esc(sourceId) : '') + '</div><div class="grid" style="margin-top:10px">' +
+        E.fieldHtml({ name: 'EquipmentID', type: 'select', required: true, full: true, disabled: fromSource, options: [{ v: '', l: '-' }].concat(eqs.map(function (e) { return { v: e.EquipmentID, l: e.EquipmentID + ' · ' + e.EquipmentName }; })) }, pf.EquipmentID || '') +
+        E.fieldHtml({ name: 'Title', required: true, full: true, max: 150 }, pf.Title) +
+        E.fieldHtml({ name: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'].map(function (p) { return { v: p, l: t('prio.' + p) }; }) }, pf.Priority) +
+        E.fieldHtml({ name: 'PlannedDate', type: 'date', max: 10 }, '') + E.fieldHtml({ name: 'DueDate', type: 'date', max: 10 }, '') +
+        E.fieldHtml({ name: 'Description', type: 'textarea', full: true, max: 1500 }, pf.Description) +
+        '<div class="field" data-f="tasks" style="grid-column:1/-1"><label>' + esc(t('wo.tasks')) + '</label><textarea name="tasks" rows="5">' + esc((pf.tasks || []).join('\n')) + '</textarea><div class="sub">' + esc(t('wo.tasksHelp')) + '</div><div class="ferr"></div></div></div>';
+      var busy = false;
+      var go = E.btn(t('common.save'), 'primary', function () {
+        if (busy) return;
+        var f = E.readForm(m.body);
+        if (fromSource) f.EquipmentID = pf.EquipmentID;
+        f.SourceType = sourceType; f.SourceID = sourceId || '';
+        f.tasks = String(f.tasks || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+        busy = true; go.disabled = true;
+        E.api('wo.create', f).then(function (r) { E.toast(t('wo.saved', { id: r.WorkOrderID })); m.close(); if (onDone) onDone(r); })
+          .catch(function (e) {
+            busy = false; go.disabled = false;
+            if (e && e.code === 'CONFLICT' && e.details && e.details.rule === 'alreadyExists') { E.toast(t('wo.exists', { id: e.details.workOrderId }), 'err'); return; }
+            if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err');
+          });
+      }, 'check');
+      var m = E.modal({ title: t('wo.createTitle'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ detail
+  function openDetail(id, onDone) {
+    Promise.all([E.api('wo.get', { id: id }), E.can('wo.approve') ? E.api('pm.meta', {}) : Promise.resolve({ technicians: [] })]).then(function (res) {
+      var d = res[0], w = d.wo, can = d.can, tasks = d.tasks, techs = res[1].technicians;
+      var done = tasks.filter(function (x) { return x.IsDone; }).length;
+      var techOpts = function (sel) { return '<option value="">' + esc(t('cm.pickTech')) + '</option>' + techs.map(function (u) { return '<option value="' + esc(u.email.toLowerCase()) + '"' + (u.email.toLowerCase() === (sel || '').toLowerCase() ? ' selected' : '') + '>' + esc(u.name + ' (' + u.role + ')') + '</option>'; }).join(''); };
+      var html = '<div class="block"><b>' + esc(w.WorkOrderID) + ' · ' + esc(w.Title) + '</b><div class="sub">' + esc(w.EquipmentID + ' ' + w.EquipmentName) + ' · ' + esc(t('wosrc.' + w.SourceType)) + (w.SourceID ? ' ' + esc(w.SourceID) : '') + '</div>' +
+        '<div style="margin-top:6px">' + E.prioBadge(w.Priority) + ' ' + stBadge(w.Status) + (w.overdue ? ' ' + E.badge('bad', t('wo.overdue')) : '') + '</div></div><div class="dl">' + [
+          ['wo.requestedBy', w.RequestedBy], ['f.AssignedTo', w.AssigneeName || '-'], ['f.PlannedDate', w.PlannedDate || '-'], ['f.DueDate', w.DueDate || '-']
+        ].map(function (x) { return '<div><dt>' + esc(t(x[0])) + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') + '</div>' +
+        (w.Description ? '<div class="block" style="margin-top:10px"><h4>' + esc(t('f.Description')) + '</h4>' + esc(w.Description).replace(/\n/g, '<br>') + '</div>' : '');
+      html += '<div class="block"><h4>' + esc(t('wo.tasks')) + (tasks.length ? ' — ' + esc(t('wo.done', { done: done, total: tasks.length })) : '') + '</h4>' + (tasks.length ? tasks.map(function (x) {
+        return '<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0"><input type="checkbox" data-task="' + esc(x.TaskID) + '"' + (x.IsDone ? ' checked' : '') + (can.toggle ? '' : ' disabled') + '><span' + (x.IsDone ? ' style="text-decoration:line-through;color:var(--muted)"' : '') + '>' +
+          esc(x.TaskNo + '. ' + x.TaskDescription) + '</span></label>';
+      }).join('') : '<span class="sub">' + esc(t('wo.noTasks')) + '</span>') + '</div>';
+      if (w.ApprovedBy) html += '<div class="notice">' + esc(t('wost.' + (w.Status === 'Rejected' ? 'Rejected' : 'Approved'))) + ': ' + esc(t('wo.approvedBy', { by: w.ApprovedBy, at: E.fmtDT(w.ApprovedAt) })) + (w.ApprovalRemarks ? ' — ' + esc(w.ApprovalRemarks) : '') + '</div>';
+      if (w.ResultNotes) html += '<div class="block"><h4>' + esc(t('f.ResultNotes')) + '</h4>' + esc(w.ResultNotes) + (w.VerifiedBy ? '<div class="sub">' + esc(t('wo.verifiedBy')) + ': ' + esc(w.VerifiedBy) + ' · ' + esc(E.fmtDT(w.ClosedAt)) + '</div>' : '') + '</div>';
+      if (can.decide) html += '<div class="block"><h4>' + esc(t('wo.decisionTitle')) + '</h4><div class="field" data-f="AssignedTo"><label>' + esc(t('wo.assignTo')) + '</label><select name="AssignedTo">' + techOpts('') + '</select><div class="ferr"></div></div>' +
+        '<div class="field" data-f="ApprovalRemarks"><label>' + esc(t('f.ApprovalRemarks')) + '</label><textarea name="ApprovalRemarks" maxlength="500"></textarea><div class="ferr"></div></div></div>';
+      if (can.decideBlockedSelf) html += '<div class="notice">' + esc(t('wo.selfApprove')) + '</div>';
+      if (can.assign) html += '<div class="block"><h4>' + esc(t('wo.assignTo')) + '</h4><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="wass">' + techOpts(w.AssignedTo) + '</select><button class="btn" id="wassb">' + esc(t('wo.assignBtn')) + '</button></div></div>';
+      if (can.complete) html += '<div class="field" data-f="ResultNotes"><label>' + esc(t('f.ResultNotes')) + ' <i class="req">*</i></label><textarea name="ResultNotes" maxlength="1500"></textarea><div class="ferr"></div></div>';
+      if (can.closeBlockedSelf) html += '<div class="notice">' + esc(t('wo.selfClose')) + '</div>';
+      if (w.Status === 'Approved' && !w.AssignedTo && !can.assign) html += '<div class="notice">' + esc(t('wo.assignFirst')) + '</div>';
+
+      var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      function act(name, payload) {
+        return E.api(name, payload).then(function () { E.toast(t('common.saved')); m.close(); if (onDone) onDone(); openDetail(id, onDone); })
+          .catch(function (e) { if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      }
+      if (can.cancel) foot.push(E.btn(t('wo.cancel'), 'danger', function () {
+        E.askText(t('wo.cancel'), t('wo.cancelReason'), true).then(function (r) { if (r) act('wo.cancel', { id: id, remarks: r.text }); });
+      }));
+      if (can.edit) foot.push(E.btn(t('wo.edit'), '', function () { m.close(); openEdit(d, onDone); }, 'edit'));
+      if (can.decide) {
+        foot.push(E.btn(t('wo.reject'), 'danger', function () { act('wo.decide', { id: id, decision: 'Rejected', remarks: $('[name=ApprovalRemarks]', m.body).value, UpdatedAt: w.UpdatedAt }); }, 'x'));
+        foot.push(E.btn(t('wo.approve'), 'primary', function () { act('wo.decide', { id: id, decision: 'Approved', remarks: $('[name=ApprovalRemarks]', m.body).value, AssignedTo: $('[name=AssignedTo]', m.body).value, UpdatedAt: w.UpdatedAt }); }, 'check'));
+      }
+      if (can.start) foot.push(E.btn(t('wo.start'), 'primary', function () { act('wo.start', { id: id }); }, 'wrench'));
+      if (can.complete) foot.push(E.btn(t('wo.complete'), 'primary', function () { act('wo.complete', { id: id, ResultNotes: $('[name=ResultNotes]', m.body).value, UpdatedAt: w.UpdatedAt }); }, 'check'));
+      if (can.close) foot.push(E.btn(t('wo.close'), 'primary', function () { act('wo.close', { id: id }); }, 'check'));
+      var m = E.modal({ title: t('wo.detail'), size: 'lg', body: html, footer: foot });
+      if ($('#wassb', m.body)) $('#wassb', m.body).onclick = function () { act('wo.assign', { id: id, AssignedTo: $('#wass', m.body).value }); };
+      $$('[data-task]', m.body).forEach(function (cb) {
+        cb.onchange = function () {
+          cb.disabled = true;
+          E.api('wo.toggleTask', { taskId: cb.dataset.task, done: cb.checked }).then(function () { m.close(); openDetail(id, onDone); if (onDone) onDone(); })
+            .catch(function (e) { cb.checked = !cb.checked; cb.disabled = false; E.toast(E.errText(e), 'err'); });
+        };
+      });
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  function openEdit(d, onDone) {
+    var w = d.wo;
+    var html = '<div class="grid">' + E.fieldHtml({ name: 'Title', required: true, full: true, max: 150 }, w.Title) +
+      E.fieldHtml({ name: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'].map(function (p) { return { v: p, l: t('prio.' + p) }; }) }, w.Priority) +
+      E.fieldHtml({ name: 'PlannedDate', type: 'date', max: 10 }, w.PlannedDate) + E.fieldHtml({ name: 'DueDate', type: 'date', max: 10 }, w.DueDate) +
+      E.fieldHtml({ name: 'Description', type: 'textarea', full: true, max: 1500 }, w.Description) +
+      '<div class="field" data-f="tasks" style="grid-column:1/-1"><label>' + esc(t('wo.tasks')) + '</label><textarea name="tasks" rows="5">' + esc(d.tasks.map(function (x) { return x.TaskDescription; }).join('\n')) + '</textarea><div class="sub">' + esc(t('wo.tasksHelp')) + '</div><div class="ferr"></div></div></div>';
+    var save = E.btn(t('common.save'), 'primary', function () {
+      var f = E.readForm(m.body);
+      f.tasks = String(f.tasks || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+      f.id = w.WorkOrderID; f.UpdatedAt = w.UpdatedAt;
+      save.disabled = true;
+      E.api('wo.update', f).then(function () { E.toast(t('common.saved')); m.close(); if (onDone) onDone(); openDetail(w.WorkOrderID, onDone); })
+        .catch(function (e) { save.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+    });
+    var m = E.modal({ title: t('wo.edit'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); openDetail(w.WorkOrderID, onDone); }), save] });
+  }
+
+  // ================================================================ halaman
+  var F = { tab: 'open', prio: '', f: '', q: '' };
+  E.pages.wo = {
+    openCreate: openCreate, openDetail: openDetail,
+    render: function (el) {
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.wo')) + '</h1><span id="wtools"></span></div><div class="tabs"><button data-t="open">' + esc(t('wo.tabOpen')) + '</button><button data-t="done">' + esc(t('wo.tabDone')) + '</button></div>' +
+        '<div class="toolbar"><input class="grow" type="search" id="wq" placeholder="' + esc(t('eq.searchPh')) + '" value="' + esc(F.q) + '"><select class="mini" id="wp"><option value="">' + esc(t('cm.allPrio')) + '</option>' +
+        ['Critical', 'High', 'Medium', 'Low'].map(function (p) { return '<option value="' + p + '"' + (F.prio === p ? ' selected' : '') + '>' + esc(t('prio.' + p)) + '</option>'; }).join('') +
+        '</select><select class="mini" id="wf">' + [['', 'wo.fAll'], ['mine', 'wo.fMine'], ['overdue', 'wo.fOverdue']].map(function (o) { return '<option value="' + o[0] + '"' + (F.f === o[0] ? ' selected' : '') + '>' + esc(t(o[1])) + '</option>'; }).join('') + '</select></div><div id="wbody"></div>';
+      if (E.can('wo.create')) $('#wtools', el).appendChild(E.btn(t('wo.create'), 'primary', function () { openCreate('Manual', '', load); }, 'plus'));
+      var rows = [];
+      function draw() {
+        var q = F.q.toLowerCase();
+        var list = rows.filter(function (r) {
+          if (F.f === 'overdue' && !r.overdue) return false;
+          return !q || [r.WorkOrderID, r.EquipmentID, r.EquipmentName, r.Title, r.AssigneeName].join(' ').toLowerCase().indexOf(q) !== -1;
+        });
+        $('#wbody', el).innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.WorkOrderID')) + '</th><th>' + esc(t('f.Title')) + '</th><th>' + esc(t('f.Priority')) + '</th><th>' + esc(t('f.Status')) +
+          '</th><th class="hide-sm">' + esc(t('f.AssignedTo')) + '</th><th class="hide-sm">' + esc(t('f.DueDate')) + '</th></tr></thead><tbody>' + (list.length ? list.map(function (r) {
+            return '<tr data-id="' + esc(r.WorkOrderID) + '" style="cursor:pointer"><td><b>' + esc(r.WorkOrderID) + '</b><div class="sub">' + esc(t('wosrc.' + r.SourceType)) + '</div></td><td>' + esc(r.Title) + '<div class="sub">' + esc(r.EquipmentID + ' ' + r.EquipmentName) + '</div></td><td>' +
+              E.prioBadge(r.Priority) + '</td><td>' + stBadge(r.Status) + '</td><td class="hide-sm">' + esc(r.AssigneeName || '-') + '</td><td class="hide-sm">' + esc(r.DueDate || '-') + (r.overdue ? ' ' + E.badge('bad', t('wo.overdue')) : '') + '</td></tr>';
+          }).join('') : '<tr><td colspan="6" class="empty">' + esc(t('wo.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+        $$('tr[data-id]', el).forEach(function (tr) { tr.onclick = function () { openDetail(tr.dataset.id, load); }; });
+      }
+      function load() {
+        $$('.tabs button', el).forEach(function (b) { b.classList.toggle('on', b.dataset.t === F.tab); });
+        E.api('wo.list', { group: F.tab, priority: F.prio, mine: F.f === 'mine' }).then(function (d) { rows = d.rows; draw(); })
+          .catch(function (e) { $('#wbody', el).innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+      }
+      $$('.tabs button', el).forEach(function (b) { b.onclick = function () { F.tab = b.dataset.t; load(); }; });
+      $('#wq', el).oninput = function () { F.q = this.value; draw(); };
+      $('#wp', el).onchange = function () { F.prio = this.value; load(); };
+      $('#wf', el).onchange = function () { F.f = this.value; load(); };
+      load();
+    }
+  };
+})();
+</script>
