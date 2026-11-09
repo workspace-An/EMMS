@@ -103,6 +103,28 @@ const Notify = {
     return out;
   },
 
+  /** Email temuan K3 High/Critical ke Supervisor/Manager/Admin. Tidak pernah melempar error. */
+  safety: function (f, eq) {
+    const out = { sent: 0, failed: 0 };
+    try {
+      const rcpt = Notify.recipients_(CFG.CRITICAL_ALERT_ROLES);
+      if (!rcpt.length) return out;
+      const where = eq ? eq.EquipmentID + ' - ' + eq.EquipmentName : (f.LocationID || '-');
+      const subject = '[EMMS] K3 ' + String(f.RiskLevel).toUpperCase() + ' / 电气安全 - ' + where;
+      const html = '<div style="font-family:Arial,sans-serif;max-width:560px;border:1px solid #fecaca;border-radius:8px"><div style="background:#b91c1c;color:#fff;padding:12px 18px;font-weight:bold;border-radius:8px 8px 0 0">' +
+        'TEMUAN K3 LISTRIK / ELECTRICAL SAFETY / 电气安全 (' + Notify.esc_(f.RiskLevel) + ')</div><div style="padding:18px;color:#1e293b"><p><b>' + Notify.esc_(where) + '</b></p><p>' +
+        Notify.esc_(f.SafetyID) + ' &middot; ' + Notify.esc_(f.SafetyType) + ' / ' + Notify.esc_(f.ReportType) + ' &middot; ' + Notify.esc_(f.ReportedBy) + '</p><p>' + Notify.esc_(f.Description) +
+        '</p><p style="color:#64748b;font-size:12px">EMMS &gt; K3 Listrik</p></div></div>';
+      let remaining = 0;
+      try { remaining = MailApp.getRemainingDailyQuota(); } catch (e) { remaining = 0; }
+      rcpt.forEach(function (r, i) {
+        if (i >= remaining) { out.failed++; return; }
+        if (Notify.sendLogged_('SAFETY_FINDING', r.email, subject, html, 'ELECTRICAL_SAFETY', f.SafetyID)) out.sent++; else out.failed++;
+      });
+    } catch (e) { console.error('safety: ' + e.message); }
+    return out;
+  },
+
   /** Email penugasan CM / WO ke satu teknisi. Tidak pernah melempar error. */
   assigned: function (type, email, title, desc, refType, refId) {
     try {

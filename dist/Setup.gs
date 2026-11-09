@@ -588,3 +588,69 @@ function runSelfTestPhase4() {
   Logger.log(out);
   return out;
 }
+
+/**
+ * Uji mandiri Phase 5 (K3 Listrik) di spreadsheet nyata. Jalankan dari editor Apps Script.
+ * Membuat data uji lalu menghapusnya. Prioritas Medium, tanpa email.
+ */
+function runSelfTestPhase5() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const eq = function (a, b, m) { if (a !== b) throw new Error((m || 'nilai') + ': diharapkan ' + b + ', dapat ' + a); };
+  const A = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+  const S = { email: 'selftest-sup@example.com', name: 'Self Test 2', role: 'Supervisor' };
+  const T = { email: 'selftest-tech@example.com', name: 'Self Test 3', role: 'Technician' };
+  let e1 = null, sid = '', woId = '', lotoId = '';
+
+  t('Sheet & kolom Phase 5 lengkap (jalankan setupEMMS() bila gagal)', function () {
+    ['ELECTRICAL_SAFETY', 'RISK_ASSESSMENTS', 'LOTO_RECORDS'].forEach(function (n) {
+      const h = Db.headers(n);
+      Schema.columns(n).forEach(function (c) { if (h.indexOf(c.name) === -1) throw new Error(n + ' kehilangan kolom ' + c.name); });
+    });
+  });
+  t('Lapor temuan Medium (tanpa email) & validasi', function () {
+    const cat = Db.all('EQUIPMENT_CATEGORIES')[0], loc = Db.all('LOCATIONS')[0];
+    e1 = Equipment.create({ EquipmentName: 'ZZTEST K3', CategoryID: cat.CategoryID, BuildingID: loc.BuildingID, LocationID: loc.LocationID, SerialNumber: 'ZZ-P5', Brand: 'ZZ' }, A);
+    ensureThrows_(function () { Safety.report({ EquipmentID: e1.EquipmentID }, T); }, 'VALIDATION');
+    sid = Safety.report({ EquipmentID: e1.EquipmentID, SafetyType: 'UnsafeCondition', ReportType: 'Grounding', Description: 'uji', RiskLevel: 'Medium' }, T).SafetyID;
+    eq(Db.get('ELECTRICAL_SAFETY', sid).Status, 'Open');
+  });
+  t('Skor risiko dihitung server; skor tinggi butuh persetujuan; penilai tidak boleh menyetujui sendiri', function () {
+    const r = Risk.save({ SafetyID: sid, Hazard: 'h', Controls: 'c', Likelihood: 4, Severity: 4 }, S);
+    eq(r.RiskScore, 16); eq(r.RiskLevel, 'High'); eq(r.RequiresApproval, true);
+    ensureThrows_(function () { Risk.approve({ id: r.RiskID }, S); }, 'FORBIDDEN');
+    eq(Risk.approve({ id: r.RiskID, remarks: 'uji' }, A).decision, 'Approved');
+  });
+  t('WO dari temuan, LOTO, penyelesaian diblok sampai LOTO dilepas', function () {
+    woId = WO.create({ SourceType: 'Safety', SourceID: sid, EquipmentID: e1.EquipmentID, Title: 'ZZTEST WO K3', Priority: 'Low', tasks: ['a'] }, T).WorkOrderID;
+    eq(Db.get('ELECTRICAL_SAFETY', sid).Status, 'In Action');
+    WO.decide({ id: woId, decision: 'Approved' }, S);
+    Db.update('WORK_ORDERS', woId, { AssignedTo: T.email }, 'x');
+    lotoId = Loto.apply({ WorkOrderID: woId, IsolationPoints: 'uji', LockNo: 'ZZ-LK', VerificationNotes: '0 V' }, T).LOTOID;
+    ensureThrows_(function () { Loto.apply({ WorkOrderID: woId, IsolationPoints: 'x', LockNo: 'ZZ-2', VerificationNotes: 'x' }, T); }, 'CONFLICT');
+    WO.start({ id: woId }, T);
+    WO.get({ id: woId }, T).tasks.forEach(function (k) { WO.toggleTask({ taskId: k.TaskID, done: true }, T); });
+    ensureThrows_(function () { WO.complete({ id: woId, ResultNotes: 'x' }, T); }, 'CONFLICT');
+    Loto.remove({ id: lotoId }, T);
+    WO.complete({ id: woId, ResultNotes: 'selesai' }, T);
+    WO.close({ id: woId }, S);
+  });
+  t('Tutup temuan', function () {
+    eq(Safety.close({ id: sid, ActionTaken: 'selesai' }, S).Status, 'Closed');
+  });
+  t('Bersihkan data uji', function () {
+    Db.where('RISK_ASSESSMENTS', function (r) { return r.SafetyID === sid; }).forEach(function (r) { Db.hardDelete('RISK_ASSESSMENTS', r.RiskID); });
+    Db.hardDelete('LOTO_RECORDS', lotoId);
+    Db.where('WORK_ORDER_TASKS', function (k) { return k.WorkOrderID === woId; }).forEach(function (k) { Db.hardDelete('WORK_ORDER_TASKS', k.TaskID); });
+    Db.hardDelete('WORK_ORDERS', woId);
+    Db.hardDelete('ELECTRICAL_SAFETY', sid);
+    Equipment.remove({ id: e1.EquipmentID, reason: 'self test', confirmId: e1.EquipmentID }, A);
+  });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
+}

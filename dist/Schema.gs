@@ -121,24 +121,24 @@ const SCHEMA = {
   },
   ELECTRICAL_SAFETY: {
     pk: 'SafetyID', prefix: 'SAF', tab: '#7c3aed',
-    desc: 'Temuan & inspeksi K3 listrik (Phase 5).',
+    desc: 'Temuan K3 listrik (Phase 5). SafetyType: UnsafeCondition/UnsafeAct/NearMiss/Incident/EquipmentHazard. ReportType (kategori bahaya): Grounding/Insulation/Overheating/Arc/ExposedLive/Protection/Labelling/Housekeeping/Other. Status: Open/In Action/Closed/Dismissed.',
     fk: 'EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS',
     cols: ['EquipmentID', 'SafetyType', 'ReportType', 'Description', 'RiskLevel', 'ReportedBy', 'ReportDate:d',
-      'ActionRequired', 'ActionTaken', 'PhotoFileIDs', 'WorkOrderID']
+      'ActionRequired', 'ActionTaken', 'PhotoFileIDs', 'WorkOrderID', 'LocationID', 'ReportedByEmail', 'ClosedBy', 'ClosedAt:dt']
   },
   RISK_ASSESSMENTS: {
     pk: 'RiskID', prefix: 'RSK', tab: '#7c3aed',
-    desc: 'Penilaian risiko (Phase 5). RiskLevel: Low/Medium/High/Critical.',
+    desc: 'Penilaian risiko 5x5 (Phase 5). Skor = Likelihood x Severity dihitung server. RiskLevel: Low/Medium/High/Critical. Terkait SafetyID dan/atau WorkOrderID.',
     fk: 'SafetyID -> ELECTRICAL_SAFETY; WorkOrderID -> WORK_ORDERS',
     cols: ['SafetyID', 'WorkOrderID', 'Hazard', 'Likelihood:n', 'Severity:n', 'RiskScore:n', 'RiskLevel', 'Controls',
-      'RequiresApproval:b', 'ApprovedBy']
+      'RequiresApproval:b', 'ApprovedBy', 'AssessedBy', 'AssessedByEmail', 'ApprovedAt:dt', 'ApprovalRemarks']
   },
   LOTO_RECORDS: {
     pk: 'LOTOID', prefix: 'LOTO', tab: '#7c3aed',
-    desc: 'Catatan Lock Out Tag Out (Phase 5).',
+    desc: 'Catatan Lock Out Tag Out (Phase 5). Status: Active/Removed. Satu LOTO aktif per equipment.',
     fk: 'WorkOrderID -> WORK_ORDERS; EquipmentID -> EQUIPMENT',
     cols: ['WorkOrderID', 'EquipmentID', 'IsolationPoints', 'LockNo', 'AppliedBy', 'AppliedAt:dt', 'RemovedBy',
-      'RemovedAt:dt', 'VerificationNotes']
+      'RemovedAt:dt', 'VerificationNotes', 'AppliedByEmail', 'RemoveRemarks']
   },
   SPARE_PARTS: {
     pk: 'ItemCode', prefix: 'SP', tab: '#0891b2',

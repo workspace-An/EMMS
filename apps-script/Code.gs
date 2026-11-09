@@ -137,7 +137,22 @@ function getRoutes_() {
     'wo.toggleTask': { perm: 'wo.work', fn: function (p, u) { return WO.toggleTask(p, u); } },
     'wo.complete': { perm: 'wo.work', fn: function (p, u) { return WO.complete(p, u); } },
     'wo.close': { perm: 'wo.approve', fn: function (p, u) { return WO.close(p, u); } },
-    'wo.cancel': { perm: 'wo.create', fn: function (p, u) { return WO.cancel(p, u); } }
+    'wo.cancel': { perm: 'wo.create', fn: function (p, u) { return WO.cancel(p, u); } },
+
+    'safety.report': { perm: 'safety.report', fn: function (p, u) { return Safety.report(p, u); } },
+    'safety.list': { perm: 'safety.view', fn: function (p, u) { return Safety.list(p, u); } },
+    'safety.get': { perm: 'safety.view', fn: function (p, u) { return Safety.get(p, u); } },
+    'safety.photo': { perm: 'safety.view', fn: function (p) { return Safety.photo(p); } },
+    'safety.uploadPhoto': { perm: 'safety.report', fn: function (p, u) { return Safety.uploadPhoto(p, u); } },
+    'safety.close': { perm: 'safety.assess', fn: function (p, u) { return Safety.close(p, u); } },
+    'safety.dismiss': { perm: 'safety.assess', fn: function (p, u) { return Safety.dismiss(p, u); } },
+    'safety.forWO': { perm: 'safety.view', fn: function (p, u) { return Safety.forWorkOrder(p, u); } },
+    'risk.list': { perm: 'safety.view', fn: function (p) { return Risk.list(p); } },
+    'risk.save': { perm: 'safety.assess', fn: function (p, u) { return Risk.save(p, u); } },
+    'risk.approve': { perm: 'safety.approve', fn: function (p, u) { return Risk.approve(p, u); } },
+    'loto.list': { perm: 'safety.view', fn: function (p, u) { return Loto.list(p, u); } },
+    'loto.apply': { perm: 'safety.loto', fn: function (p, u) { return Loto.apply(p, u); } },
+    'loto.remove': { perm: 'safety.loto', fn: function (p, u) { return Loto.remove(p, u); } }
   };
 }
 

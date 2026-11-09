@@ -21,7 +21,7 @@ const shim = `window.google={script:{run:(function(){function mk(ok,fail){return
   return mk()})()}};`;
 
 let pass = 0, fail = 0;
-async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + name); } catch (e) { fail++; console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n').slice(0, 3).join('\n       ')); } }
+async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + name); } catch (e) { fail++; if (process.env.DBG) { try { await page.screenshot({ path: '/tmp/fail.png' }); console.log(await page.evaluate(() => Array.from(document.querySelectorAll('.modal')).map(m => m.innerText.slice(0, 300)).join(' || '))); } catch (_) {} } console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n').slice(0, 3).join('\n       ')); } }
 
 (async () => {
   const browser = await chromium.launch();
@@ -353,8 +353,24 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     await page.click('.modal-f .btn.primary'); await page.waitForSelector('.modal', { state: 'detached' });
     assert.ok(ctx.Db.all('WORK_ORDERS').some(w => w.SourceType === 'Inspection'));
   });
-  await t('modul fase berikutnya menampilkan placeholder', async () => {
-    await page.click('[data-nav=safety]'); assert.ok((await page.textContent('.content')).includes('Phase 5'));
+  await t('K3 Listrik: lapor temuan High, nilai risiko, buat WO dari temuan', async () => {
+    await page.click('[data-nav=safety]'); await page.waitForSelector('#stools button');
+    await page.click('#stools button'); await page.waitForSelector('.modal [name=Description]');
+    await page.selectOption('.modal [name=EquipmentID]', ctx.Db.all('EQUIPMENT')[0].EquipmentID);
+    await page.selectOption('.modal [name=SafetyType]', 'UnsafeCondition'); await page.selectOption('.modal [name=ReportType]', 'Grounding');
+    await page.selectOption('.modal [name=RiskLevel]', 'High'); await page.fill('.modal [name=Description]', 'Grounding panel lepas');
+    await page.click('.modal-f .btn.primary'); await page.waitForSelector('.modal', { state: 'detached' });
+    const f = ctx.Db.all('ELECTRICAL_SAFETY').pop(); assert.strictEqual(f.RiskLevel, 'High');
+    await page.waitForSelector('#sbody tr[data-id]'); await page.click('#sbody tr[data-id]'); await page.waitForSelector('.modal-f');
+    await page.locator('.modal-f button', { hasText: 'Nilai risiko' }).click(); await page.waitForSelector('.modal [name=Hazard]');
+    await page.fill('.modal [name=Hazard]', 'Sengatan listrik'); await page.fill('.modal [name=Controls]', 'Pasang grounding');
+    await page.selectOption('.modal [name=Likelihood]', '4'); await page.selectOption('.modal [name=Severity]', '4');
+    assert.ok((await page.textContent('#rprev')).includes('16'));
+    await page.locator('.modal-f').last().locator('.btn.primary').click(); await page.waitForTimeout(800);
+    const r = ctx.Db.all('RISK_ASSESSMENTS').pop(); assert.strictEqual(r.RiskScore, 16); assert.strictEqual(r.RequiresApproval, true);
+    await page.locator('.modal-f button', { hasText: 'Buat Work Order' }).click();
+    await page.waitForSelector('.modal [name=Title]'); await page.locator('.modal-f').last().locator('.btn.primary').click(); await page.waitForSelector('.modal', { state: 'detached' });
+    assert.ok(ctx.Db.all('WORK_ORDERS').some(w => w.SourceType === 'Safety' && w.SourceID === f.SafetyID));
   });
   await t('tampilan HP (375px): menu geser & tanpa scroll horizontal halaman', async () => {
     await page.setViewportSize({ width: 375, height: 760 });

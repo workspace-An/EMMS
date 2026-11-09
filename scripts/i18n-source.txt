@@ -513,3 +513,90 @@ rule.tasksPending|masih ada tugas yang belum selesai|some tasks are not done yet
 rule.tooMany|terlalu banyak|too many|数量过多
 rule.alreadyExists|sudah ada WO aktif untuk sumber ini|an active WO already exists for this source|此来源已有进行中的工单
 dash.woAwaiting|WO menunggu persetujuan|WOs awaiting approval|待批准工单
+risk.Low|Rendah|Low|低
+risk.Medium|Sedang|Medium|中
+risk.High|Tinggi|High|高
+risk.Critical|Kritis|Critical|严重
+risk.L1|Sangat jarang|Rare|极少
+risk.L2|Jarang|Unlikely|不太可能
+risk.L3|Mungkin|Possible|可能
+risk.L4|Sering|Likely|很可能
+risk.L5|Hampir pasti|Almost certain|几乎肯定
+risk.S1|Tidak signifikan|Negligible|可忽略
+risk.S2|Ringan|Minor|轻微
+risk.S3|Sedang|Moderate|中等
+risk.S4|Berat|Major|严重
+risk.S5|Fatal / sangat berat|Catastrophic|灾难性
+risk.title|Penilaian risiko|Risk assessment|风险评估
+risk.none|Belum ada penilaian risiko.|No risk assessment yet.|尚无风险评估。
+risk.assess|Nilai risiko|Assess risk|评估风险
+risk.assessTitle|Penilaian risiko (matriks 5x5)|Risk assessment (5x5 matrix)|风险评估（5x5 矩阵）
+risk.score|Skor {s} (K {l} × D {v})|Score {s} (L {l} × S {v})|分值 {s}（可能性 {l} × 严重度 {v}）
+risk.preview|Skor {s} → tingkat {level}|Score {s} → level {level}|分值 {s} → 等级 {level}
+risk.needsApproval|Perlu persetujuan Manager/Admin|Requires Manager/Admin approval|需要经理/管理员批准
+risk.pending|Menunggu persetujuan|Awaiting approval|待批准
+risk.rejected|Ditolak - buat penilaian baru|Rejected - create a new assessment|已驳回，请重新评估
+risk.decide|Putuskan|Decide|审批
+risk.approvedBy|Disetujui {by} pada {at}|Approved by {by} on {at}|{by} 于 {at} 批准
+risk.savedNeedsApproval|Tersimpan. Menunggu persetujuan Manager/Admin.|Saved. Awaiting Manager/Admin approval.|已保存，待经理/管理员批准。
+sft.UnsafeCondition|Kondisi tidak aman|Unsafe condition|不安全状态
+sft.UnsafeAct|Tindakan tidak aman|Unsafe act|不安全行为
+sft.NearMiss|Nyaris celaka|Near miss|未遂事故
+sft.Incident|Insiden|Incident|事故
+sft.EquipmentHazard|Bahaya peralatan|Equipment hazard|设备隐患
+hz.Grounding|Grounding / pentanahan|Grounding|接地
+hz.Insulation|Isolasi|Insulation|绝缘
+hz.Overheating|Panas berlebih|Overheating|过热
+hz.Arc|Arc flash / percikan|Arc flash / sparking|电弧
+hz.ExposedLive|Bagian bertegangan terbuka|Exposed live parts|带电部分裸露
+hz.Protection|Proteksi (MCB/ELCB/relay)|Protection (MCB/ELCB/relay)|保护装置
+hz.Labelling|Label / rambu|Labelling / signage|标识
+hz.Housekeeping|Kerapian / kebersihan|Housekeeping|整洁
+hz.Other|Lainnya|Other|其他
+sfst.Open|Baru|Open|新建
+sfst.In Action|Dalam penanganan|In action|处理中
+sfst.Closed|Ditutup|Closed|已关闭
+sfst.Dismissed|Ditolak / tidak valid|Dismissed|已驳回
+lotost.Active|Terpasang|Active|已上锁
+lotost.Removed|Dilepas|Removed|已解除
+sf.report|Laporkan temuan K3|Report safety finding|报告安全隐患
+sf.reportTitle|Temuan K3 listrik|Electrical safety finding|电气安全隐患
+sf.reportHint|Temuan High/Critical menaikkan status equipment ke Warning dan mengirim email ke Supervisor/Manager/Admin.|High/Critical findings raise equipment to Warning and email Supervisor/Manager/Admin.|高/严重隐患会将设备状态升为警告，并邮件通知主管/经理/管理员。
+sf.saved|Temuan {id} dicatat.|Finding {id} recorded.|已记录隐患 {id}。
+sf.detail|Detail temuan K3|Safety finding detail|隐患详情
+sf.tabOpen|Terbuka|Open|未关闭
+sf.tabDone|Selesai|Closed|已完成
+sf.allRisk|Semua tingkat risiko|All risk levels|全部风险等级
+sf.noData|Belum ada temuan.|No findings.|暂无隐患。
+sf.dismiss|Tolak (tidak valid)|Dismiss (invalid)|驳回（无效）
+sf.dismissReason|Alasan|Reason|原因
+sf.closeBtn|Tutup temuan|Close finding|关闭隐患
+loto.title|LOTO|LOTO|LOTO 上锁挂牌
+loto.none|Belum ada catatan LOTO.|No LOTO records.|暂无 LOTO 记录。
+loto.apply|Pasang LOTO|Apply LOTO|施加 LOTO
+loto.remove|Lepas LOTO|Remove LOTO|解除 LOTO
+loto.removeReason|Catatan pelepasan|Removal remarks|解除备注
+loto.removedBy|Dilepas {by} pada {at}|Removed by {by} on {at}|{by} 于 {at} 解除
+loto.hint|Pastikan titik isolasi sudah di-lock, di-tag, dan tegangan nol sudah diverifikasi sebelum bekerja. WO tidak dapat diselesaikan sebelum LOTO dilepas.|Make sure isolation points are locked, tagged and zero-energy verified before working. The WO cannot be completed until LOTO is removed.|作业前确认隔离点已上锁挂牌并验证零能量。解除 LOTO 前工单无法完成。
+f.Hazard|Bahaya|Hazard|危害
+f.Controls|Pengendalian risiko|Risk controls|控制措施
+f.Likelihood|Kemungkinan (1-5)|Likelihood (1-5)|可能性（1-5）
+f.Severity|Keparahan (1-5)|Severity (1-5)|严重度（1-5）
+f.SafetyID|ID Temuan|Finding ID|隐患编号
+f.SafetyType|Jenis laporan|Report type|报告类型
+f.ReportType|Kategori bahaya|Hazard category|隐患类别
+f.RiskLevel|Tingkat risiko|Risk level|风险等级
+f.ActionRequired|Tindakan yang diperlukan|Action required|所需措施
+f.ActionTaken|Tindakan yang dilakukan|Action taken|已采取措施
+f.IsolationPoints|Titik isolasi|Isolation points|隔离点
+f.LockNo|No. gembok|Lock no.|锁号
+f.VerificationNotes|Verifikasi tegangan nol|Zero-energy verification|零能量验证
+f.AppliedBy|Dipasang oleh|Applied by|施加人
+rule.lotoActive|LOTO masih terpasang|LOTO is still active|LOTO 仍处于上锁状态
+rule.lockInUse|Nomor gembok sedang dipakai|Lock number is in use|锁号正在使用
+rule.needsAssessment|Perlu penilaian risiko dahulu|A risk assessment is required first|需先进行风险评估
+rule.riskNotApproved|Penilaian risiko belum disetujui|Risk assessment not approved yet|风险评估尚未批准
+rule.woOpen|Work Order tindak lanjut masih berjalan|Follow-up work order is still open|后续工单仍在进行
+rule.lotoApplierOnly|Hanya pemasang atau Supervisor yang dapat melepas LOTO|Only the applier or a Supervisor can remove LOTO|仅施加人或主管可解除 LOTO
+rule.notActive|LOTO sudah tidak aktif|LOTO is no longer active|LOTO 已不再有效
+rule.noApprovalNeeded|Penilaian ini tidak perlu persetujuan|This assessment needs no approval|此评估无需批准

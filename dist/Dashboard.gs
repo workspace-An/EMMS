@@ -30,7 +30,7 @@ const Dashboard = {
     const cmOpen = Db.where('CORRECTIVE_MAINTENANCE', function (c) { return ['Open', 'In Progress', 'Pending'].indexOf(c.Status) !== -1; });
     const woOpen = Db.where('WORK_ORDERS', function (w) { return ['Closed', 'Cancelled', 'Rejected'].indexOf(w.Status) === -1; });
     const ngOpen = Db.where('DAILY_INSPECTIONS', function (i) { return i.Status === 'Open'; });
-    const k3Open = Db.where('ELECTRICAL_SAFETY', function (s) { return s.Status !== 'Closed'; });
+    const k3Open = Db.where('ELECTRICAL_SAFETY', function (s) { return Safety.OPEN.indexOf(s.Status) !== -1; });
 
     // 12 bulan terakhir (PM selesai + CM dilaporkan)
     const months = [];

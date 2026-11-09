@@ -151,7 +151,7 @@ t('Validasi: judul, prioritas, urutan tanggal, tugas terlalu banyak; Viewer dito
   assert.strictEqual(r.code, 'VALIDATION'); const f = r.details.errors.map(e => e.field + ':' + e.rule);
   ['Title:required', 'Priority:invalid', 'DueDate:dateOrder', 'tasks:tooMany'].forEach(x => assert.ok(f.includes(x), x));
   assert.strictEqual(A(tok.V, 'wo.create', woBase()).code, 'FORBIDDEN');
-  assert.strictEqual(A(tok.T, 'wo.create', woBase({ SourceType: 'Safety', SourceID: 'x' })).code, 'VALIDATION');
+  assert.strictEqual(A(tok.T, 'wo.create', woBase({ SourceType: 'Safety', SourceID: 'x' })).code, 'NOT_FOUND');
 });
 t('Pemohon tidak boleh menyetujui WO sendiri; Technician tidak punya hak approve', () => {
   assert.strictEqual(A(tok.T, 'wo.decide', { id: W1, decision: 'Approved' }).code, 'FORBIDDEN');

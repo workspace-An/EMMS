@@ -53,7 +53,7 @@
           '<div class="cards">' + card('inspectionsToday', 'clipboard', '', c.inspectionsToday) + card('notInspected', 'clipboard', 'warn', c.notInspected) +
           card('ngOpen', 'shield', c.ngOpen ? 'warn' : '', c.ngOpen) + card('criticalOpen', 'shield', c.criticalOpen ? 'bad' : '', c.criticalOpen) + '</div>' +
           '<div class="cards">' + card('pmUpcoming', 'calendar', '', c.pmUpcoming) + card('pmOverdue', 'calendar', c.pmOverdue ? 'bad' : '', c.pmOverdue) + card('pmAwaiting', 'check', c.pmAwaiting ? 'warn' : '', c.pmAwaiting) +
-          card('cmActive', 'wrench', c.cmActive ? 'warn' : '', c.cmActive) + card('woOpen', 'file', '', c.woOpen) + card('woAwaiting', 'file', c.woAwaiting ? 'warn' : '', c.woAwaiting) + card('k3Findings', 'shield', 'bad', c.k3Findings, 5) + '</div>' +
+          card('cmActive', 'wrench', c.cmActive ? 'warn' : '', c.cmActive) + card('woOpen', 'file', '', c.woOpen) + card('woAwaiting', 'file', c.woAwaiting ? 'warn' : '', c.woAwaiting) + card('k3Findings', 'shield', c.k3Findings ? 'bad' : '', c.k3Findings) + '</div>' +
           '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartCondition')) + '</div><div class="card-b">' + donut(ch.condition.labels, ch.condition.values, [GOOD, MID, BAD], 'cond') + '</div></div>' +
           '<div class="card"><div class="card-h">' + esc(t('dash.chartStatus')) + '</div><div class="card-b">' + donut(ch.status.labels, ch.status.values, [GOOD, MID, BAD], 'status') + '</div></div></div>' +
           '<div class="two"><div class="card"><div class="card-h">' + esc(t('dash.chartMonthly')) + '</div><div class="card-b">' + monthly(ch.monthly) + '</div></div>' +

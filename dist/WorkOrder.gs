@@ -57,6 +57,12 @@ const WO = {
       const c = Db.get('CORRECTIVE_MAINTENANCE', id);
       if (!c) throw new AppError('NOT_FOUND', 'Source not found');
       out = { EquipmentID: c.EquipmentID, Title: 'Perbaikan ' + c.ComplaintNo, Priority: c.Priority, Description: c.ProblemDescription, tasks: [], WorkOrderID: c.WorkOrderID };
+    } else if (type === 'Safety') {
+      const f = Db.get('ELECTRICAL_SAFETY', id);
+      if (!f) throw new AppError('NOT_FOUND', 'Source not found');
+      const pr = { Low: 'Low', Medium: 'Medium', High: 'High', Critical: 'Critical' }[f.RiskLevel] || 'Medium';
+      out = { EquipmentID: f.EquipmentID, Title: 'Tindak lanjut K3 ' + f.SafetyID + ' (' + f.ReportType + ')', Priority: pr, Description: f.Description + (f.ActionRequired ? '\n' + f.ActionRequired : ''),
+        tasks: f.ActionRequired ? [f.ActionRequired] : [], WorkOrderID: f.WorkOrderID };
     } else throw validationError_([{ field: 'SourceType', rule: 'invalid' }]);
     out.SourceType = type; out.SourceID = id;
     return out;
@@ -66,7 +72,7 @@ const WO = {
     p = p || {};
     const errors = [];
     const type = String(p.SourceType || 'Manual');
-    if (CFG.WO_SOURCES.indexOf(type) === -1 || type === 'Safety') errors.push({ field: 'SourceType', rule: 'invalid' });
+    if (CFG.WO_SOURCES.indexOf(type) === -1) errors.push({ field: 'SourceType', rule: 'invalid' });
     const srcId = type === 'Manual' ? '' : String(p.SourceID || '');
     if (type !== 'Manual' && !srcId) errors.push({ field: 'SourceID', rule: 'required' });
     const eq = Db.get('EQUIPMENT', String(p.EquipmentID || ''));
@@ -87,9 +93,10 @@ const WO = {
 
     const rec = Db.withLock(function () {
       if (type !== 'Manual') {
-        const src = { Inspection: 'DAILY_INSPECTIONS', PM: 'PREVENTIVE_MAINTENANCE', Corrective: 'CORRECTIVE_MAINTENANCE' }[type];
+        const src = { Inspection: 'DAILY_INSPECTIONS', PM: 'PREVENTIVE_MAINTENANCE', Corrective: 'CORRECTIVE_MAINTENANCE', Safety: 'ELECTRICAL_SAFETY' }[type];
         const s = Db.get(src, srcId);
         if (!s) throw new AppError('NOT_FOUND', 'Source not found');
+        if (type === 'Safety' && Safety.OPEN.indexOf(s.Status) === -1) throw new AppError('CONFLICT', 'Bad state', { rule: 'badState' });
         if (s.EquipmentID !== eq.EquipmentID) throw validationError_([{ field: 'EquipmentID', rule: 'invalid' }]);
         const dup = Db.where('WORK_ORDERS', function (w) { return w.SourceType === type && w.SourceID === srcId && ['Rejected', 'Cancelled'].indexOf(w.Status) === -1; });
         if (dup.length) throw new AppError('CONFLICT', 'WO exists', { rule: 'alreadyExists', workOrderId: dup[0].WorkOrderID });
@@ -102,6 +109,7 @@ const WO = {
       if (type === 'Inspection') Db.update('DAILY_INSPECTIONS', srcId, { WorkOrderID: w.WorkOrderID }, user.email);
       if (type === 'PM') Db.update('PREVENTIVE_MAINTENANCE', srcId, { WorkOrderID: w.WorkOrderID }, user.email);
       if (type === 'Corrective') Db.update('CORRECTIVE_MAINTENANCE', srcId, { WorkOrderID: w.WorkOrderID }, user.email);
+      if (type === 'Safety') Db.update('ELECTRICAL_SAFETY', srcId, { WorkOrderID: w.WorkOrderID, Status: 'In Action' }, user.email);
       Audit.log(user, 'WO_CREATE', 'WORK_ORDERS', w.WorkOrderID, { source: type + ':' + srcId, equipment: eq.EquipmentID, priority: prio, tasks: tasks.length }, 'OK');
       return w;
     });
@@ -229,6 +237,7 @@ const WO = {
       if (!WO.canWork_(user, w)) throw new AppError('FORBIDDEN', 'Not assignee', { rule: 'notAssignee' });
       if (w.Status !== 'Approved') throw new AppError('CONFLICT', 'Bad state', { rule: 'badState' });
       if (!w.AssignedTo) throw new AppError('CONFLICT', 'Unassigned', { rule: 'unassigned' });
+      Safety.startGate_(w);
       Db.update('WORK_ORDERS', w.WorkOrderID, { Status: 'In Progress', StartedAt: Db.now() }, user.email);
       Audit.log(user, 'WO_START', 'WORK_ORDERS', w.WorkOrderID, {}, 'OK');
       return { WorkOrderID: w.WorkOrderID, Status: 'In Progress' };
@@ -258,6 +267,7 @@ const WO = {
       const w = WO.rec_(p.id);
       if (!WO.canWork_(user, w)) throw new AppError('FORBIDDEN', 'Not assignee', { rule: 'notAssignee' });
       if (w.Status !== 'In Progress') throw new AppError('CONFLICT', 'Bad state', { rule: 'badState' });
+      if (Db.where('LOTO_RECORDS', function (l) { return l.WorkOrderID === w.WorkOrderID && l.Status === 'Active'; }).length) throw new AppError('CONFLICT', 'LOTO still active', { rule: 'lotoActive' });
       const pending = WO.tasks_(w.WorkOrderID).filter(function (t) { return t.IsDone !== true; });
       if (pending.length) throw new AppError('CONFLICT', 'Tasks pending', { rule: 'tasksPending', pending: pending.length });
       Db.update('WORK_ORDERS', w.WorkOrderID, { Status: 'Completed', ResultNotes: notes, CompletedBy: Auth.norm(user.email), CompletedAt: Db.now() }, user.email, { expectedUpdatedAt: p.UpdatedAt });
@@ -286,6 +296,7 @@ const WO = {
       const mineReq = Auth.norm(w.RequestedByEmail) === Auth.norm(user.email);
       if (!(Auth.can(user, 'wo.approve') || mineReq)) throw new AppError('FORBIDDEN', 'Forbidden', { rule: 'wo.cancel' });
       if (w.Status !== 'Requested' && w.Status !== 'Approved') throw new AppError('CONFLICT', 'Bad state', { rule: 'badState' });
+      if (Db.where('LOTO_RECORDS', function (l) { return l.WorkOrderID === w.WorkOrderID && l.Status === 'Active'; }).length) throw new AppError('CONFLICT', 'LOTO still active', { rule: 'lotoActive' });
       Db.update('WORK_ORDERS', w.WorkOrderID, { Status: 'Cancelled', ApprovalRemarks: remarks }, user.email);
       Audit.log(user, 'WO_CANCEL', 'WORK_ORDERS', w.WorkOrderID, { remarks: remarks }, 'OK');
       return { WorkOrderID: w.WorkOrderID, Status: 'Cancelled' };

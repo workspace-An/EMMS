@@ -7,7 +7,7 @@
 
 const CFG = {
   APP_NAME: 'EMMS',
-  VERSION: '1.3.0-phase4',
+  VERSION: '1.4.0-phase5',
 
   // Kunci Script Properties
   SS_ID_PROP: 'EMMS_SS_ID',
@@ -63,7 +63,12 @@ const CFG = {
     'wo.view':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
     'wo.create':        ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
     'wo.work':          ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
-    'wo.approve':       ['Admin', 'Maintenance Manager', 'Supervisor']
+    'wo.approve':       ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'safety.view':      ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
+    'safety.report':    ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
+    'safety.assess':    ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'safety.approve':   ['Admin', 'Maintenance Manager'],
+    'safety.loto':      ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician']
   },
 
   // Kebijakan Phase 2
@@ -83,7 +88,16 @@ const CFG = {
   REPAIR_RESULTS: ['Repaired', 'Temporary', 'NotRepaired'],
   CM_MAX_PHOTOS: 5,
   WO_MAX_TASKS: 20,
-  WO_SOURCES: ['Inspection', 'PM', 'Corrective', 'Safety', 'Manual']
+  WO_SOURCES: ['Inspection', 'PM', 'Corrective', 'Safety', 'Manual'],
+
+  // Kebijakan Phase 5
+  SAFETY_TYPES: ['UnsafeCondition', 'UnsafeAct', 'NearMiss', 'Incident', 'EquipmentHazard'],
+  HAZARD_CATEGORIES: ['Grounding', 'Insulation', 'Overheating', 'Arc', 'ExposedLive', 'Protection', 'Labelling', 'Housekeeping', 'Other'],
+  RISK_LEVELS: ['Low', 'Medium', 'High', 'Critical'],
+  // Matriks 5x5: skor >= batas -> tingkat. Skor >= RISK_APPROVAL_MIN wajib disetujui Manager/Admin.
+  RISK_THRESHOLDS: { Critical: 17, High: 10, Medium: 5 },
+  RISK_APPROVAL_MIN: 10,
+  SAFETY_MAX_PHOTOS: 5
 };
 
 /**

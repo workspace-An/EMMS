@@ -24,9 +24,9 @@ Semua sel diformat **teks** dan ditulis sebagai string. Tipe di bawah adalah tip
 | 14 | CORRECTIVE_MAINTENANCE | ComplaintNo | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Laporan kerusakan & perbaikan (Phase 4). Status: Open/In Progress/Pending/Completed/Closed. |
 | 15 | WORK_ORDERS | WorkOrderID | EquipmentID -> EQUIPMENT; SourceID -> (tabel sesuai SourceType) | Work Order (Phase 4). SourceType: Inspection/PM/Corrective/Safety/Manual. Status: Requested/Approved/In Progress/Completed/Closed/Rejected/Cancelled. |
 | 16 | WORK_ORDER_TASKS | TaskID | WorkOrderID -> WORK_ORDERS | Rincian tugas dalam Work Order (Phase 4). |
-| 17 | ELECTRICAL_SAFETY | SafetyID | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Temuan & inspeksi K3 listrik (Phase 5). |
-| 18 | RISK_ASSESSMENTS | RiskID | SafetyID -> ELECTRICAL_SAFETY; WorkOrderID -> WORK_ORDERS | Penilaian risiko (Phase 5). RiskLevel: Low/Medium/High/Critical. |
-| 19 | LOTO_RECORDS | LOTOID | WorkOrderID -> WORK_ORDERS; EquipmentID -> EQUIPMENT | Catatan Lock Out Tag Out (Phase 5). |
+| 17 | ELECTRICAL_SAFETY | SafetyID | EquipmentID -> EQUIPMENT; WorkOrderID -> WORK_ORDERS | Temuan K3 listrik (Phase 5). SafetyType: UnsafeCondition/UnsafeAct/NearMiss/Incident/EquipmentHazard. ReportType (kategori bahaya): Grounding/Insulation/Overheating/Arc/ExposedLive/Protection/Labelling/Housekeeping/Other. Status: Open/In Action/Closed/Dismissed. |
+| 18 | RISK_ASSESSMENTS | RiskID | SafetyID -> ELECTRICAL_SAFETY; WorkOrderID -> WORK_ORDERS | Penilaian risiko 5x5 (Phase 5). Skor = Likelihood x Severity dihitung server. RiskLevel: Low/Medium/High/Critical. Terkait SafetyID dan/atau WorkOrderID. |
+| 19 | LOTO_RECORDS | LOTOID | WorkOrderID -> WORK_ORDERS; EquipmentID -> EQUIPMENT | Catatan Lock Out Tag Out (Phase 5). Status: Active/Removed. Satu LOTO aktif per equipment. |
 | 20 | SPARE_PARTS | ItemCode | - | Master spare part (Phase 6). |
 | 21 | INVENTORY_TRANSACTIONS | TransactionID | ItemCode -> SPARE_PARTS; ReferenceID -> WORK_ORDERS (bila ReferenceType=WO) | Mutasi stok (Phase 6). TransactionType: IN/OUT/ADJUST. |
 | 22 | APPROVALS | ApprovalID | RefType + RefID -> tabel terkait | Riwayat approval & tanda tangan digital sederhana (Phase 7). |
@@ -420,7 +420,7 @@ Rincian tugas dalam Work Order (Phase 4).
 
 ## ELECTRICAL_SAFETY
 
-Temuan & inspeksi K3 listrik (Phase 5).
+Temuan K3 listrik (Phase 5). SafetyType: UnsafeCondition/UnsafeAct/NearMiss/Incident/EquipmentHazard. ReportType (kategori bahaya): Grounding/Insulation/Overheating/Arc/ExposedLive/Protection/Labelling/Housekeeping/Other. Status: Open/In Action/Closed/Dismissed.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -436,6 +436,10 @@ Temuan & inspeksi K3 listrik (Phase 5).
 | ActionTaken | text |  |
 | PhotoFileIDs | text |  |
 | WorkOrderID | text |  |
+| LocationID | text |  |
+| ReportedByEmail | text |  |
+| ClosedBy | text |  |
+| ClosedAt | datetime |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |
@@ -444,7 +448,7 @@ Temuan & inspeksi K3 listrik (Phase 5).
 
 ## RISK_ASSESSMENTS
 
-Penilaian risiko (Phase 5). RiskLevel: Low/Medium/High/Critical.
+Penilaian risiko 5x5 (Phase 5). Skor = Likelihood x Severity dihitung server. RiskLevel: Low/Medium/High/Critical. Terkait SafetyID dan/atau WorkOrderID.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -459,6 +463,10 @@ Penilaian risiko (Phase 5). RiskLevel: Low/Medium/High/Critical.
 | Controls | text |  |
 | RequiresApproval | boolean |  |
 | ApprovedBy | text |  |
+| AssessedBy | text |  |
+| AssessedByEmail | text |  |
+| ApprovedAt | datetime |  |
+| ApprovalRemarks | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |
@@ -467,7 +475,7 @@ Penilaian risiko (Phase 5). RiskLevel: Low/Medium/High/Critical.
 
 ## LOTO_RECORDS
 
-Catatan Lock Out Tag Out (Phase 5).
+Catatan Lock Out Tag Out (Phase 5). Status: Active/Removed. Satu LOTO aktif per equipment.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -481,6 +489,8 @@ Catatan Lock Out Tag Out (Phase 5).
 | RemovedBy | text |  |
 | RemovedAt | datetime |  |
 | VerificationNotes | text |  |
+| AppliedByEmail | text |  |
+| RemoveRemarks | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |

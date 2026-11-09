@@ -1,0 +1,222 @@
+<script>
+/* EMMS - Safety.html : K3 Listrik (Phase 5): temuan, penilaian risiko 5x5, LOTO */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, $ = E.$, $$ = E.$$;
+  var RB = { Low: 'ok', Medium: 'info', High: 'warn', Critical: 'bad' };
+  var SB = { Open: 'warn', 'In Action': 'info', Closed: 'gray', Dismissed: 'gray' };
+  function riskBadge(l) { return E.badge(RB[l] || 'gray', t('risk.' + l)); }
+  function stBadge(s) { return E.badge(SB[s] || 'gray', t('sfst.' + s)); }
+  var TYPES = ['UnsafeCondition', 'UnsafeAct', 'NearMiss', 'Incident', 'EquipmentHazard'];
+  var CATS = ['Grounding', 'Insulation', 'Overheating', 'Arc', 'ExposedLive', 'Protection', 'Labelling', 'Housekeeping', 'Other'];
+  var LEVELS = ['Low', 'Medium', 'High', 'Critical'];
+  var opts = function (arr, pre) { return arr.map(function (x) { return { v: x, l: t(pre + x) }; }); };
+  function levelOf(score) { return score >= 17 ? 'Critical' : (score >= 10 ? 'High' : (score >= 5 ? 'Medium' : 'Low')); }
+
+  function riskCard(r, canApprove, onDone) {
+    var pend = r.RequiresApproval && !r.ApprovedBy, rej = /^REJECTED/.test(r.ApprovalRemarks || '');
+    return '<div class="block"><b>' + esc(r.RiskID) + '</b> ' + riskBadge(r.RiskLevel) + ' <span class="sub">' + esc(t('risk.score', { s: r.RiskScore, l: r.Likelihood, v: r.Severity })) + ' · ' + esc(r.AssessedBy) + '</span>' +
+      '<div>' + esc(r.Hazard) + '</div><div class="sub">' + esc(t('f.Controls')) + ': ' + esc(r.Controls) + '</div>' +
+      (r.ApprovedBy ? '<div class="sub">' + esc(t('risk.approvedBy', { by: r.ApprovedBy, at: E.fmtDT(r.ApprovedAt) })) + '</div>' : '') +
+      (pend ? '<div style="margin-top:4px">' + E.badge(rej ? 'bad' : 'warn', t(rej ? 'risk.rejected' : 'risk.pending')) + (rej ? ' <span class="sub">' + esc(r.ApprovalRemarks) + '</span>' : '') +
+        (canApprove && !rej ? ' <button class="btn" data-rapp="' + esc(r.RiskID) + '">' + esc(t('risk.decide')) + '</button>' : '') + '</div>' : '') + '</div>';
+  }
+
+  function bindApprove(root, onDone) {
+    $$('[data-rapp]', root).forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.rapp;
+        var go = function (decision, remarks) {
+          return E.api('risk.approve', { id: id, decision: decision, remarks: remarks }).then(function () { E.toast(t('common.saved')); onDone(); })
+            .catch(function (e) { E.toast(E.errText(e), 'err'); });
+        };
+        var m = E.modal({
+          title: t('risk.decide'), size: 'sm', body: '<div class="field"><label>' + esc(t('f.ApprovalRemarks')) + '</label><textarea name="txt" maxlength="500"></textarea><div class="ferr"></div></div>',
+          footer: [E.btn(t('wo.reject'), 'danger', function () {
+            var v = $('[name=txt]', m.body).value.trim(); if (!v) { $('.ferr', m.body).textContent = t('rule.required'); return; } m.close(); go('Rejected', v);
+          }, 'x'), E.btn(t('wo.approve'), 'primary', function () { var v = $('[name=txt]', m.body).value.trim(); m.close(); go('Approved', v); }, 'check')]
+        });
+      };
+    });
+  }
+
+  /** Form penilaian risiko. ref = {SafetyID} atau {WorkOrderID}. */
+  function openAssess(ref, onDone) {
+    var html = '<div class="grid">' + E.fieldHtml({ name: 'Hazard', type: 'textarea', required: true, full: true, max: 500 }, '') +
+      E.fieldHtml({ name: 'Likelihood', type: 'select', required: true, options: [1, 2, 3, 4, 5].map(function (n) { return { v: String(n), l: n + ' - ' + t(['risk.L', n].join('')) }; }) }, '3') +
+      E.fieldHtml({ name: 'Severity', type: 'select', required: true, options: [1, 2, 3, 4, 5].map(function (n) { return { v: String(n), l: n + ' - ' + t(['risk.S', n].join('')) }; }) }, '3') +
+      E.fieldHtml({ name: 'Controls', type: 'textarea', required: true, full: true, max: 1000 }, '') + '</div><div class="notice" id="rprev"></div>';
+    var busy = false;
+    var go = E.btn(t('common.save'), 'primary', function () {
+      if (busy) return; busy = true; go.disabled = true;
+      var f = E.readForm(m.body); Object.keys(ref).forEach(function (k) { f[k] = ref[k]; });
+      E.api('risk.save', f).then(function (r) { m.close(); E.toast(t(r.RequiresApproval ? 'risk.savedNeedsApproval' : 'common.saved')); if (onDone) onDone(); })
+        .catch(function (e) { busy = false; go.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+    });
+    var m = E.modal({ title: t('risk.assessTitle'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+    function prev() {
+      var s = Number($('[name=Likelihood]', m.body).value) * Number($('[name=Severity]', m.body).value), l = levelOf(s);
+      $('#rprev', m.body).innerHTML = esc(t('risk.preview', { s: s, level: t('risk.' + l) })) + (s >= 10 ? ' — <b>' + esc(t('risk.needsApproval')) + '</b>' : '');
+    }
+    $('[name=Likelihood]', m.body).onchange = prev; $('[name=Severity]', m.body).onchange = prev; prev();
+  }
+
+  // ================================================================ laporan temuan
+  function openReport(equipmentId, onDone) {
+    E.api('equipment.list', {}).then(function (eqs) {
+      eqs = eqs.filter(function (e) { return e.Status === undefined || e.Status === 'Active'; });
+      var files = [];
+      var html = '<div class="grid">' +
+        E.fieldHtml({ name: 'EquipmentID', type: 'select', required: true, full: true, options: [{ v: '', l: '-' }].concat(eqs.map(function (e) { return { v: e.EquipmentID, l: e.EquipmentID + ' · ' + e.EquipmentName }; })) }, equipmentId || '') +
+        E.fieldHtml({ name: 'SafetyType', type: 'select', required: true, options: [{ v: '', l: '-' }].concat(opts(TYPES, 'sft.')) }, '') +
+        E.fieldHtml({ name: 'ReportType', type: 'select', required: true, options: [{ v: '', l: '-' }].concat(opts(CATS, 'hz.')) }, '') +
+        E.fieldHtml({ name: 'RiskLevel', type: 'select', required: true, options: opts(LEVELS, 'risk.') }, 'Medium') +
+        E.fieldHtml({ name: 'Description', type: 'textarea', required: true, full: true, max: 1500 }, '') +
+        E.fieldHtml({ name: 'ActionRequired', type: 'textarea', full: true, max: 500 }, '') + '</div>' +
+        '<p class="sub">' + esc(t('sf.reportHint')) + '</p><label class="btn" style="cursor:pointer">' + E.ic('upload') + '<span>' + esc(t('cm.photosPick', { max: 5 })) + '</span><input type="file" accept="image/*" capture="environment" multiple hidden id="sph"></label> <span class="sub" id="sphn"></span>';
+      var busy = false;
+      var go = E.btn(t('sf.report'), 'primary', function () {
+        if (busy) return; busy = true; go.disabled = true;
+        var f = E.readForm(m.body);
+        E.api('safety.report', f).then(function (r) {
+          var failed = 0;
+          return files.reduce(function (p, file) {
+            return p.then(function () { return E.resizeImage(file, 1280, 0.8).then(function (b) { return E.api('safety.uploadPhoto', { id: r.SafetyID, base64: b }); }).catch(function () { failed++; }); });
+          }, Promise.resolve()).then(function () { return { r: r, failed: failed }; });
+        }).then(function (o) {
+          m.close(); E.toast(t('sf.saved', { id: o.r.SafetyID }));
+          if (f.RiskLevel === 'High' || f.RiskLevel === 'Critical') E.toast(o.r.notified && o.r.notified.sent > 0 ? t('cm.notified', { n: o.r.notified.sent }) : t('cm.notifyFail'), o.r.notified && o.r.notified.sent > 0 ? '' : 'err');
+          if (o.failed) E.toast(t('cm.photoFail', { n: o.failed }), 'err');
+          if (onDone) onDone(o.r);
+        }).catch(function (e) { busy = false; go.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      }, 'shield');
+      var m = E.modal({ title: t('sf.reportTitle'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+      $('#sph', m.body).onchange = function () { files = Array.prototype.slice.call(this.files, 0, 5); $('#sphn', m.body).textContent = files.map(function (f) { return f.name; }).join(', '); };
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ detail temuan
+  function openDetail(id, onDone) {
+    E.api('safety.get', { id: id }).then(function (d) {
+      var s = d.safety, can = d.can;
+      var html = '<div class="block"><b>' + esc(s.SafetyID) + ' · ' + esc(s.EquipmentID ? s.EquipmentID + ' ' + s.EquipmentName : s.LocationName) + '</b><div class="sub">' + esc(s.LocationName) + '</div><div style="margin-top:6px">' + riskBadge(s.RiskLevel) + ' ' + stBadge(s.Status) + ' ' +
+        E.badge('gray', t('sft.' + s.SafetyType)) + ' ' + E.badge('gray', t('hz.' + s.ReportType)) + '</div></div><div class="dl">' + [['f.DateReported', s.ReportDate], ['f.ReportedBy', s.ReportedBy]].map(function (x) { return '<div><dt>' + esc(t(x[0])) + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') + '</div>' +
+        '<div class="block" style="margin-top:10px"><h4>' + esc(t('f.Description')) + '</h4>' + esc(s.Description).replace(/\n/g, '<br>') + (s.ActionRequired ? '<div class="sub" style="margin-top:6px">' + esc(t('f.ActionRequired')) + ': ' + esc(s.ActionRequired) + '</div>' : '') + '</div>';
+      html += '<div style="margin:8px 0"><b class="sub">' + esc(t('cm.photos', { n: s.photos.length, max: d.maxPhotos })) + '</b> ' + s.photos.map(function (x, i) { return '<button class="btn" data-ph="' + i + '">' + E.ic('eye') + '<span>' + esc(t('cm.viewPhoto', { n: i + 1 })) + '</span></button>'; }).join(' ') +
+        (can.photo ? ' <label class="btn" style="cursor:pointer">' + E.ic('upload') + '<span>' + esc(t('cm.addPhoto')) + '</span><input type="file" accept="image/*" data-up hidden></label>' : '') + '</div>';
+      html += '<div class="block"><h4>' + esc(t('risk.title')) + '</h4>' + (d.risks.length ? d.risks.slice().reverse().map(function (r) { return riskCard(r, can.approve, onDone); }).join('') : '<span class="sub">' + esc(t('risk.none')) + '</span>') + '</div>';
+      if (s.ClosedBy) html += '<div class="notice">' + esc(t('sfst.' + s.Status)) + ': ' + esc(s.ClosedBy) + ' · ' + esc(E.fmtDT(s.ClosedAt)) + (s.ActionTaken ? ' — ' + esc(s.ActionTaken) : '') + '</div>';
+      if (can.close) html += '<div class="field" data-f="ActionTaken"><label>' + esc(t('f.ActionTaken')) + '</label><textarea name="ActionTaken" maxlength="1000"></textarea><div class="ferr"></div></div>';
+      var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      function reload() { m.close(); if (onDone) onDone(); openDetail(id, onDone); }
+      if (s.WorkOrderID) foot.push(E.btn(t('cm.viewWO', { id: s.WorkOrderID }), '', function () { E.pages.wo.openDetail(s.WorkOrderID, onDone); }, 'file'));
+      if (can.createWO) foot.push(E.btn(t('cm.createWO'), '', function () { m.close(); E.pages.wo.openCreate('Safety', s.SafetyID, onDone); }, 'file'));
+      if (can.assess) foot.push(E.btn(t('risk.assess'), '', function () { openAssess({ SafetyID: id }, reload); }, 'shield'));
+      if (can.dismiss) foot.push(E.btn(t('sf.dismiss'), 'danger', function () {
+        E.askText(t('sf.dismiss'), t('sf.dismissReason'), true).then(function (r) { if (r) E.api('safety.dismiss', { id: id, remarks: r.text }).then(function () { E.toast(t('common.saved')); reload(); }).catch(function (e) { E.toast(E.errText(e), 'err'); }); });
+      }));
+      if (can.close) foot.push(E.btn(t('sf.closeBtn'), 'primary', function () {
+        E.api('safety.close', { id: id, ActionTaken: $('[name=ActionTaken]', m.body).value }).then(function () { E.toast(t('common.saved')); reload(); })
+          .catch(function (e) { if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      }, 'check'));
+      var m = E.modal({ title: t('sf.detail'), size: 'lg', body: html, footer: foot });
+      bindApprove(m.body, reload);
+      $$('[data-ph]', m.body).forEach(function (b) {
+        b.onclick = function () {
+          E.api('safety.photo', { id: id, index: Number(b.dataset.ph) }).then(function (x) {
+            if (x.dataUrl) E.modal({ title: t('cm.viewPhoto', { n: Number(b.dataset.ph) + 1 }), size: 'lg', body: '<img class="thumb" alt="">' }).body.querySelector('img').src = x.dataUrl;
+          }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+        };
+      });
+      var up = $('[data-up]', m.body);
+      if (up) up.onchange = function () {
+        var f = up.files[0]; if (!f) return;
+        E.resizeImage(f, 1280, 0.8).then(function (b) { return E.api('safety.uploadPhoto', { id: id, base64: b }); }).then(function () { E.toast(t('common.saved')); reload(); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+      };
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // ================================================================ panel keselamatan di detail WO (risiko + LOTO)
+  function woPanel(woId, box, reload) {
+    E.api('safety.forWO', { workOrderId: woId }).then(function (d) {
+      var can = d.can;
+      var html = '<h4>' + esc(t('risk.title')) + '</h4>' + (d.risks.length ? d.risks.slice().reverse().map(function (r) { return riskCard(r, can.approve, reload); }).join('') : '<span class="sub">' + esc(t('risk.none')) + '</span>') +
+        (can.assess ? '<div style="margin:6px 0"><button class="btn" id="wsa">' + E.ic('shield') + '<span>' + esc(t('risk.assess')) + '</span></button></div>' : '') +
+        '<h4 style="margin-top:10px">' + esc(t('loto.title')) + '</h4>' + (d.lotos.length ? d.lotos.map(function (l) {
+          return '<div class="block"><b>' + esc(l.LOTOID) + '</b> ' + E.badge(l.Status === 'Active' ? 'warn' : 'gray', t('lotost.' + l.Status)) + ' <span class="sub">' + esc(t('f.LockNo')) + ' ' + esc(l.LockNo) + ' · ' + esc(l.AppliedBy) + ' · ' + esc(E.fmtDT(l.AppliedAt)) + '</span>' +
+            '<div>' + esc(l.IsolationPoints) + '</div><div class="sub">' + esc(t('f.VerificationNotes')) + ': ' + esc(l.VerificationNotes) + '</div>' +
+            (l.RemovedBy ? '<div class="sub">' + esc(t('loto.removedBy', { by: l.RemovedBy, at: E.fmtDT(l.RemovedAt) })) + (l.RemoveRemarks ? ' — ' + esc(l.RemoveRemarks) : '') + '</div>' : '') +
+            (l.Status === 'Active' && (l.isMine || d.can.removeAny) && E.can('safety.loto') ? '<button class="btn" data-lrm="' + esc(l.LOTOID) + '" data-mine="' + (l.isMine ? 1 : 0) + '">' + esc(t('loto.remove')) + '</button>' : '') + '</div>';
+        }).join('') : '<span class="sub">' + esc(t('loto.none')) + '</span>') +
+        (can.applyLoto ? '<div style="margin:6px 0"><button class="btn" id="wsl">' + E.ic('lock') + '<span>' + esc(t('loto.apply')) + '</span></button></div>' : '');
+      box.innerHTML = html;
+      bindApprove(box, reload);
+      if ($('#wsa', box)) $('#wsa', box).onclick = function () { openAssess({ WorkOrderID: woId }, reload); };
+      if ($('#wsl', box)) $('#wsl', box).onclick = function () { openLoto(woId, reload); };
+      $$('[data-lrm]', box).forEach(function (b) {
+        b.onclick = function () {
+          E.askText(t('loto.remove'), t('loto.removeReason'), b.dataset.mine !== '1').then(function (r) {
+            if (r) E.api('loto.remove', { id: b.dataset.lrm, remarks: r.text }).then(function () { E.toast(t('common.saved')); reload(); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+          });
+        };
+      });
+    }).catch(function (e) { box.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+  }
+
+  function openLoto(woId, onDone) {
+    var html = '<div class="grid">' + E.fieldHtml({ name: 'IsolationPoints', type: 'textarea', required: true, full: true, max: 500 }, '') + E.fieldHtml({ name: 'LockNo', required: true, max: 40 }, '') +
+      E.fieldHtml({ name: 'VerificationNotes', type: 'textarea', required: true, full: true, max: 500 }, '') + '</div><div class="notice">' + esc(t('loto.hint')) + '</div>';
+    var busy = false;
+    var go = E.btn(t('loto.apply'), 'primary', function () {
+      if (busy) return; busy = true; go.disabled = true;
+      var f = E.readForm(m.body); f.WorkOrderID = woId;
+      E.api('loto.apply', f).then(function () { m.close(); E.toast(t('common.saved')); if (onDone) onDone(); })
+        .catch(function (e) { busy = false; go.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+    }, 'lock');
+    var m = E.modal({ title: t('loto.apply'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+  }
+
+  // ================================================================ halaman
+  var F = { tab: 'open', risk: '', mine: false, q: '' };
+  E.pages.safety = {
+    openReport: openReport, openDetail: openDetail, woPanel: woPanel,
+    render: function (el) {
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.safety')) + '</h1><span id="stools"></span></div><div class="tabs"><button data-t="open">' + esc(t('sf.tabOpen')) + '</button><button data-t="done">' + esc(t('sf.tabDone')) + '</button><button data-t="loto">' + esc(t('loto.title')) + '</button></div>' +
+        '<div class="toolbar" id="sbar"><input class="grow" type="search" id="sq" placeholder="' + esc(t('eq.searchPh')) + '" value="' + esc(F.q) + '"><select class="mini" id="sr"><option value="">' + esc(t('sf.allRisk')) + '</option>' +
+        LEVELS.slice().reverse().map(function (p) { return '<option value="' + p + '"' + (F.risk === p ? ' selected' : '') + '>' + esc(t('risk.' + p)) + '</option>'; }).join('') + '</select><label class="sub"><input type="checkbox" id="smine"' + (F.mine ? ' checked' : '') + '> ' + esc(t('cm.fMine')) + '</label></div><div id="sbody"></div>';
+      if (E.can('safety.report')) $('#stools', el).appendChild(E.btn(t('sf.report'), 'primary', function () { openReport('', load); }, 'shield'));
+      var rows = [];
+      function drawLoto() {
+        $('#sbody', el).innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>LOTO</th><th>' + esc(t('f.EquipmentName')) + '</th><th>' + esc(t('f.LockNo')) + '</th><th>' + esc(t('f.Status')) + '</th><th class="hide-sm">' + esc(t('f.AppliedBy')) + '</th></tr></thead><tbody>' +
+          (rows.length ? rows.map(function (r) {
+            return '<tr data-wo="' + esc(r.WorkOrderID) + '" style="cursor:pointer"><td><b>' + esc(r.LOTOID) + '</b><div class="sub">' + esc(r.WorkOrderID) + '</div></td><td>' + esc(r.EquipmentID) + '<div class="sub">' + esc(r.EquipmentName) + '</div></td><td>' + esc(r.LockNo) + '</td><td>' +
+              E.badge(r.Status === 'Active' ? 'warn' : 'gray', t('lotost.' + r.Status)) + '</td><td class="hide-sm">' + esc(r.AppliedBy) + '<div class="sub">' + esc(E.fmtDT(r.AppliedAt)) + '</div></td></tr>';
+          }).join('') : '<tr><td colspan="5" class="empty">' + esc(t('loto.none')) + '</td></tr>') + '</tbody></table></div></div>';
+        $$('tr[data-wo]', el).forEach(function (tr) { tr.onclick = function () { E.pages.wo.openDetail(tr.dataset.wo, load); }; });
+      }
+      function draw() {
+        if (F.tab === 'loto') return drawLoto();
+        var q = F.q.toLowerCase();
+        var list = rows.filter(function (r) { return !q || [r.SafetyID, r.EquipmentID, r.EquipmentName, r.Description, r.LocationName].join(' ').toLowerCase().indexOf(q) !== -1; });
+        $('#sbody', el).innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.SafetyID')) + '</th><th>' + esc(t('f.EquipmentName')) + '</th><th>' + esc(t('f.Description')) + '</th><th>' + esc(t('f.RiskLevel')) + '</th><th>' + esc(t('f.Status')) + '</th></tr></thead><tbody>' +
+          (list.length ? list.map(function (r) {
+            return '<tr data-id="' + esc(r.SafetyID) + '" style="cursor:pointer"><td><b>' + esc(r.SafetyID) + '</b><div class="sub">' + esc(r.ReportDate) + '</div></td><td>' + esc(r.EquipmentID) + '<div class="sub">' + esc(r.EquipmentName || r.LocationName) + '</div></td><td>' +
+              esc(r.Description.length > 70 ? r.Description.slice(0, 70) + '…' : r.Description) + '<div class="sub">' + esc(t('hz.' + r.ReportType)) + '</div></td><td>' + riskBadge(r.RiskLevel) + '</td><td>' + stBadge(r.Status) + '</td></tr>';
+          }).join('') : '<tr><td colspan="5" class="empty">' + esc(t('sf.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+        $$('tr[data-id]', el).forEach(function (tr) { tr.onclick = function () { openDetail(tr.dataset.id, load); }; });
+      }
+      function load() {
+        $$('.tabs button', el).forEach(function (b) { b.classList.toggle('on', b.dataset.t === F.tab); });
+        $('#sbar', el).style.display = F.tab === 'loto' ? 'none' : '';
+        var p = F.tab === 'loto' ? E.api('loto.list', { active: false }) : E.api('safety.list', { group: F.tab, risk: F.risk, mine: F.mine });
+        p.then(function (d) { rows = d.rows; draw(); }).catch(function (e) { $('#sbody', el).innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+      }
+      $$('.tabs button', el).forEach(function (b) { b.onclick = function () { F.tab = b.dataset.t; load(); }; });
+      $('#sq', el).oninput = function () { F.q = this.value; draw(); };
+      $('#sr', el).onchange = function () { F.risk = this.value; load(); };
+      $('#smine', el).onchange = function () { F.mine = this.checked; load(); };
+      load();
+    }
+  };
+})();
+</script>

@@ -3,7 +3,7 @@
 ## Otomatis
 | Perintah | Isi | Lingkungan |
 |---|---|---|
-| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 | Node + **mock** layanan Google |
+| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 | Node + **mock** layanan Google |
 | `npm run test:e2e` | 34 skenario di Chromium (login OTP, dashboard, equipment, QR, form, bahasa, HP 375px, inspeksi OK/NG, review, checklist, jadwal & pelaksanaan & approval PM, laporan kerusakan, siklus CM, siklus Work Order) | Playwright + mock |
 | `node tests/qr-verify.mjs` | QR dibaca decoder OpenCV (14 kasus) | Python + OpenCV |
 | `runSelfTest()` di Apps Script | 17 uji pada **Sheet sungguhan** | Google |
@@ -65,3 +65,16 @@ Jalankan `setupEMMS()` ulang, lalu `runSelfTestPhase4()` (harus 5/5).
 | 8 | Technician buat WO lalu coba setujui sendiri | Ditolak; Supervisor lain menyetujui + menugaskan (email terkirim) |
 | 9 | Teknisi: Mulai, centang semua tugas, isi catatan, Tandai selesai | Completed; Supervisor lain menutup -> Closed |
 | 10 | Viewer | Hanya melihat; tanpa tombol aksi |
+
+## Uji manual Phase 5 (di Google, wajib)
+Jalankan `setupEMMS()` lalu `runSelfTestPhase5()` (harus semua PASS). Lalu coba di aplikasi:
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---------|-----------------------|
+| 1 | Teknisi: K3 Listrik > Laporkan temuan (risiko High, foto) | Temuan SAF-xxxx; equipment Warning; email ke Supervisor/Manager/Admin |
+| 2 | Supervisor: buka temuan > Nilai risiko 4 x 4 | Skor 16 High, "Menunggu persetujuan" |
+| 3 | Supervisor mencoba menyetujui | Tidak ada tombol / ditolak; Manager/Admin bisa |
+| 4 | Buat Work Order dari temuan, setujui + tugaskan | Temuan jadi In Action |
+| 5 | Teknisi: Mulai WO sebelum risiko disetujui | Ditolak (risiko belum disetujui) |
+| 6 | Teknisi: Pasang LOTO di detail WO, coba Selesai | Selesai ditolak sampai LOTO dilepas |
+| 7 | Lepas LOTO, selesaikan, tutup WO, tutup temuan | Temuan Closed |

@@ -62,6 +62,7 @@
       if (can.assign) html += '<div class="block"><h4>' + esc(t('wo.assignTo')) + '</h4><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="wass">' + techOpts(w.AssignedTo) + '</select><button class="btn" id="wassb">' + esc(t('wo.assignBtn')) + '</button></div></div>';
       if (can.complete) html += '<div class="field" data-f="ResultNotes"><label>' + esc(t('f.ResultNotes')) + ' <i class="req">*</i></label><textarea name="ResultNotes" maxlength="1500"></textarea><div class="ferr"></div></div>';
       if (can.closeBlockedSelf) html += '<div class="notice">' + esc(t('wo.selfClose')) + '</div>';
+      if (E.can('safety.view') && w.Status !== 'Requested' && w.Status !== 'Rejected' && w.Status !== 'Cancelled') html += '<div class="block" id="wsafe"></div>';
       if (w.Status === 'Approved' && !w.AssignedTo && !can.assign) html += '<div class="notice">' + esc(t('wo.assignFirst')) + '</div>';
 
       var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
@@ -81,6 +82,7 @@
       if (can.complete) foot.push(E.btn(t('wo.complete'), 'primary', function () { act('wo.complete', { id: id, ResultNotes: $('[name=ResultNotes]', m.body).value, UpdatedAt: w.UpdatedAt }); }, 'check'));
       if (can.close) foot.push(E.btn(t('wo.close'), 'primary', function () { act('wo.close', { id: id }); }, 'check'));
       var m = E.modal({ title: t('wo.detail'), size: 'lg', body: html, footer: foot });
+      if ($('#wsafe', m.body)) E.pages.safety.woPanel(id, $('#wsafe', m.body), function () { m.close(); if (onDone) onDone(); openDetail(id, onDone); });
       if ($('#wassb', m.body)) $('#wassb', m.body).onclick = function () { act('wo.assign', { id: id, AssignedTo: $('#wass', m.body).value }); };
       $$('[data-task]', m.body).forEach(function (cb) {
         cb.onchange = function () {

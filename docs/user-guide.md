@@ -28,3 +28,10 @@
 - **Alur CM**: Baru -> (Supervisor menugaskan) -> teknisi Mulai -> Selesaikan (akar masalah, tindakan, hasil wajib) -> Supervisor Verifikasi & tutup. Anda tidak bisa menutup pekerjaan yang Anda selesaikan sendiri.
 - **Work Order**: dibuat dari temuan Inspeksi/PM/Corrective atau manual. Supervisor menyetujui dan menugaskan; teknisi mengerjakan dan mencentang tugas; WO selesai hanya bila semua tugas dicentang dan catatan hasil diisi; orang lain memverifikasi dan menutup.
 - Satu temuan hanya boleh punya satu WO aktif. Bila WO ditolak atau dibatalkan, Anda boleh membuat yang baru.
+
+## K3 Listrik (Phase 5)
+- **Laporkan temuan**: menu K3 Listrik > Laporkan temuan (Teknisi ke atas). Temuan High/Critical menaikkan status equipment ke Warning dan mengirim email.
+- **Nilai risiko** (Supervisor ke atas): pilih Kemungkinan dan Keparahan 1-5; skor dihitung otomatis. Skor >= 10 menunggu persetujuan Manager/Admin.
+- **WO dari temuan**: tombol "Buat Work Order" di detail temuan. Di detail WO ada panel risiko dan LOTO.
+- **LOTO**: teknisi yang ditugaskan memasang LOTO (titik isolasi, no. gembok, verifikasi 0 V) sebelum bekerja dan melepasnya sebelum WO diselesaikan.
+- **Tutup temuan**: isi tindakan yang dilakukan; syarat: WO tindak lanjut sudah selesai/tutup dan risiko (bila High/Critical) sudah dinilai dan disetujui.

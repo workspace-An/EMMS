@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0-phase5 - K3 Listrik (Electrical Safety)
+> Catatan: teks spesifikasi asli Phase 5 tidak tersedia saat membangun; fitur disusun dari skema Phase 1 (ELECTRICAL_SAFETY, RISK_ASSESSMENTS, LOTO_RECORDS) dan praktik K3/CMMS umum. Mohon dicocokkan dengan kebutuhan pabrik.
+- Menu **K3 Listrik**: temuan (jenis: kondisi/tindakan tidak aman, nyaris celaka, insiden, bahaya peralatan; kategori: grounding, isolasi, panas berlebih, arc, bagian bertegangan terbuka, proteksi, label, kerapian), tingkat risiko awal, tindakan diperlukan, sampai 5 foto. Status Open -> In Action -> Closed / Dismissed.
+- Temuan High/Critical: equipment naik ke **Warning** (hanya naik) + email ke Supervisor/Manager/Admin.
+- **Penilaian risiko 5x5**: skor = Kemungkinan x Keparahan dihitung server (Low <5, Medium 5-9, High 10-16, Critical >=17). Skor >= 10 wajib disetujui Manager/Admin; penilai tidak boleh menyetujui sendiri (Admin dikecualikan, diaudit); penolakan wajib alasan.
+- **LOTO**: dipasang pada WO yang disetujui oleh teknisi yang ditugaskan (titik isolasi, no. gembok, verifikasi tegangan nol). Satu LOTO aktif per equipment, no. gembok unik. WO tidak bisa **Selesai/Dibatalkan** selama LOTO aktif. Pelepasan oleh orang lain wajib alasan.
+- Integrasi WO: sumber **Safety** diaktifkan; WO tidak bisa **Mulai** bila penilaian risikonya belum disetujui; temuan tidak bisa ditutup selama WO berjalan, dan temuan High/Critical butuh penilaian yang disetujui.
+- Dashboard: kartu temuan K3 terbuka tanpa label fase. Rute baru `safety.*`, `risk.*`, `loto.*` dan izin `safety.view/report/assess/approve/loto`.
+- Skema: kolom baru pada 3 sheet Phase 5. **Jalankan ulang `setupEMMS()` setelah update.**
+- Uji: backend 21 (Phase 5), total Phase 1-4 tetap lulus, E2E 34, `runSelfTestPhase5()`.
+
 ## 1.3.0-phase4 - Corrective Maintenance & Work Order
 - Menu **Corrective Maintenance**: lapor kerusakan (prioritas, uraian, sampai 5 foto bukti), penugasan teknisi, mulai/jeda/lanjut, akar masalah + tindakan + suku cadang + hasil perbaikan, verifikasi & tutup, buka kembali (alasan wajib).
 - Prioritas Critical menandai equipment **Breakdown** dan High menandai **Warning** (hanya naik, tidak pernah turun otomatis) disertai email ke Supervisor/Manager/Admin. Menutup CM dengan hasil "Sudah diperbaiki" dapat mengembalikan equipment ke Normal bila tidak ada CM lain yang berjalan (opsi dapat dimatikan).
