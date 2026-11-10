@@ -310,11 +310,11 @@
     { id: 'dashboard', icon: 'dashboard' }, { id: 'equipment', icon: 'bolt' },
     { id: 'inspection', icon: 'clipboard' }, { id: 'pm', icon: 'calendar' },
     { id: 'cm', icon: 'wrench' }, { id: 'wo', icon: 'file' },
-    { id: 'safety', icon: 'shield' }, { id: 'inventory', icon: 'box', phase: 6 },
+    { id: 'safety', icon: 'shield' }, { id: 'inventory', icon: 'box' },
     { id: 'reports', icon: 'chart', phase: 8 }, { sep: true },
     { id: 'users', icon: 'users', perm: 'users.view' }, { id: 'settings', icon: 'gear', perm: 'settings.view' }
   ];
-  E.PHASE_FOR = { inventory: 6, reports: 8 };
+  E.PHASE_FOR = { reports: 8 };
 
   function renderShell() {
     var u = S.user;

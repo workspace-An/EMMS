@@ -125,6 +125,26 @@ const Notify = {
     return out;
   },
 
+  /** Email stok menipis ke Supervisor/Manager/Admin. Tidak pernah melempar error. */
+  lowStock: function (it) {
+    const out = { sent: 0, failed: 0 };
+    try {
+      const rcpt = Notify.recipients_(CFG.CRITICAL_ALERT_ROLES);
+      if (!rcpt.length) return out;
+      const subject = '[EMMS] Stok menipis / Low stock / 库存不足 - ' + it.ItemCode + ' ' + it.ItemName;
+      const html = '<div style="font-family:Arial,sans-serif;max-width:520px;border:1px solid #fde68a;border-radius:8px"><div style="background:#b45309;color:#fff;padding:12px 18px;font-weight:bold;border-radius:8px 8px 0 0">' +
+        'STOK MENIPIS / LOW STOCK / 库存不足</div><div style="padding:18px;color:#1e293b"><p><b>' + Notify.esc_(it.ItemCode) + ' - ' + Notify.esc_(it.ItemName) + '</b></p><p>Stok: ' + Notify.esc_(String(it.CurrentStock)) +
+        ' ' + Notify.esc_(it.Unit) + ' (minimum ' + Notify.esc_(String(it.MinimumStock)) + ')</p><p>' + Notify.esc_(it.Supplier || '') + '</p></div></div>';
+      let remaining = 0;
+      try { remaining = MailApp.getRemainingDailyQuota(); } catch (e) { remaining = 0; }
+      rcpt.forEach(function (r, i) {
+        if (i >= remaining) { out.failed++; return; }
+        if (Notify.sendLogged_('LOW_STOCK', r.email, subject, html, 'SPARE_PARTS', it.ItemCode)) out.sent++; else out.failed++;
+      });
+    } catch (e) { console.error('lowStock: ' + e.message); }
+    return out;
+  },
+
   /** Email penugasan CM / WO ke satu teknisi. Tidak pernah melempar error. */
   assigned: function (type, email, title, desc, refType, refId) {
     try {

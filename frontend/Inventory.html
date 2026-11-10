@@ -1,0 +1,140 @@
+<script>
+/* EMMS - Inventory.html : Suku cadang (Phase 6) */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, $ = E.$, $$ = E.$$;
+  var TB = { IN: 'ok', OUT: 'warn', ADJUST: 'info' };
+  function num(v) { return String(Math.round(Number(v) * 1000) / 1000).replace('.', ','); }
+  function stockBadge(r) { return r.Low ? E.badge('bad', t('inv.low')) : E.badge('ok', t('inv.ok')); }
+
+  function openItemForm(item, onDone) {
+    var isNew = !item;
+    item = item || {};
+    var html = '<div class="grid">' + E.fieldHtml({ name: 'ItemName', required: true, full: true, max: 120 }, item.ItemName || '') + E.fieldHtml({ name: 'Category', max: 60 }, item.Category || '') +
+      E.fieldHtml({ name: 'Brand', max: 60 }, item.Brand || '') + E.fieldHtml({ name: 'Specification', full: true, max: 300 }, item.Specification || '') + E.fieldHtml({ name: 'Unit', required: true, max: 20 }, item.Unit || 'pcs') +
+      E.fieldHtml({ name: 'MinimumStock', max: 12 }, item.MinimumStock !== undefined ? String(item.MinimumStock) : '0') +
+      (isNew ? E.fieldHtml({ name: 'CurrentStock', max: 12 }, '0') : '') + E.fieldHtml({ name: 'StorageLocation', max: 80 }, item.StorageLocation || '') + E.fieldHtml({ name: 'Supplier', max: 120 }, item.Supplier || '') + '</div>';
+    var busy = false;
+    var go = E.btn(t('common.save'), 'primary', function () {
+      if (busy) return; busy = true; go.disabled = true;
+      var f = E.readForm(m.body); if (!isNew) { f.ItemCode = item.ItemCode; f.expectedUpdatedAt = item.UpdatedAt; }
+      E.api('inventory.save', f).then(function (r) { m.close(); E.toast(t('common.saved')); if (onDone) onDone(r); })
+        .catch(function (e) { busy = false; go.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+    });
+    var m = E.modal({ title: t(isNew ? 'inv.add' : 'inv.edit'), size: 'lg', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+  }
+
+  function openMove(item, type, onDone) {
+    var html = '<div class="block"><b>' + esc(item.ItemCode + ' · ' + item.ItemName) + '</b><div class="sub">' + esc(t('inv.stockNow', { n: num(item.CurrentStock), u: item.Unit })) + '</div></div><div class="grid">' +
+      E.fieldHtml({ name: 'Quantity', required: true, max: 12 }, type === 'ADJUST' ? num(item.CurrentStock) : '') +
+      E.fieldHtml({ name: 'Reference', max: 60 }, '') + E.fieldHtml({ name: 'Remarks', full: true, max: 300, required: type !== 'IN' }, '') + '</div>' +
+      (type === 'ADJUST' ? '<div class="notice">' + esc(t('inv.adjustHint')) + '</div>' : '');
+    var busy = false;
+    var go = E.btn(t('inv.tx.' + type), 'primary', function () {
+      if (busy) return; busy = true; go.disabled = true;
+      var f = E.readForm(m.body); f.ItemCode = item.ItemCode; f.TransactionType = type;
+      E.api('inventory.transact', f).then(function (r) {
+        m.close(); E.toast(t('inv.done', { n: num(r.StockAfter) }));
+        if (r.low) E.toast(r.notified && r.notified.sent > 0 ? t('inv.lowNotified', { n: r.notified.sent }) : t('inv.lowNotNotified'), r.notified && r.notified.sent > 0 ? '' : 'err');
+        if (onDone) onDone();
+      }).catch(function (e) { busy = false; go.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+    }, 'box');
+    var m = E.modal({ title: t('inv.tx.' + type), size: 'md', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+  }
+
+  function txTable(rows) {
+    return '<div class="table-wrap"><table><thead><tr><th>' + esc(t('f.Date')) + '</th><th>' + esc(t('f.Type')) + '</th><th>' + esc(t('f.Quantity')) + '</th><th>' + esc(t('inv.before')) + ' → ' + esc(t('inv.after')) + '</th><th class="hide-sm">' + esc(t('f.Remarks')) + '</th></tr></thead><tbody>' +
+      (rows.length ? rows.map(function (x) {
+        return '<tr><td>' + esc(E.fmtDT(x.At)) + '<div class="sub">' + esc(x.By || '') + '</div></td><td>' + E.badge(TB[x.TransactionType], t('inv.tx.' + x.TransactionType)) + (x.ItemName ? '<div class="sub">' + esc(x.ItemCode) + '</div>' : '') + '</td><td>' + num(x.Quantity) + '</td><td>' + num(x.StockBefore) + ' → ' + num(x.StockAfter) + '</td><td class="hide-sm">' +
+          esc(x.ReferenceID ? x.ReferenceType + ' ' + x.ReferenceID : '') + (x.Remarks ? '<div class="sub">' + esc(x.Remarks) + '</div>' : '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" class="empty">' + esc(t('inv.noTx')) + '</td></tr>') + '</tbody></table></div>';
+  }
+
+  function openDetail(code, onDone) {
+    E.api('inventory.get', { id: code }).then(function (d) {
+      var it = d.item;
+      var html = '<div class="block"><b>' + esc(it.ItemCode + ' · ' + it.ItemName) + '</b> ' + stockBadge(it) + '<div class="sub">' + esc([it.Brand, it.Specification].filter(Boolean).join(' · ')) + '</div>' +
+        '<div style="font-size:22px;font-weight:700;margin-top:6px">' + num(it.CurrentStock) + ' <span class="sub">' + esc(it.Unit) + ' / min ' + num(it.MinimumStock) + '</span></div>' +
+        '<div class="sub">' + esc([it.StorageLocation, it.Supplier].filter(Boolean).join(' · ')) + '</div></div><h4 style="margin-top:10px">' + esc(t('inv.history')) + '</h4>' + txTable(d.transactions);
+      var foot = [E.btn(t('common.close'), '', function () { m.close(); })];
+      function reload() { m.close(); if (onDone) onDone(); openDetail(code, onDone); }
+      if (E.can('inventory.manage')) {
+        foot.push(E.btn(t('inv.edit'), '', function () { m.close(); openItemForm(it, function () { if (onDone) onDone(); openDetail(code, onDone); }); }, 'edit'));
+        foot.push(E.btn(t('inv.tx.ADJUST'), '', function () { openMove(it, 'ADJUST', reload); }));
+        foot.push(E.btn(t('common.delete'), 'danger', function () {
+          E.askText(t('common.delete'), t('common.reason'), true).then(function (r) { if (r) E.api('inventory.remove', { id: code, reason: r.text }).then(function () { m.close(); E.toast(t('common.saved')); if (onDone) onDone(); }).catch(function (e) { E.toast(E.errText(e), 'err'); }); });
+        }));
+      }
+      if (E.can('inventory.stock')) {
+        foot.push(E.btn(t('inv.tx.OUT'), '', function () { openMove(it, 'OUT', reload); }));
+        foot.push(E.btn(t('inv.tx.IN'), 'primary', function () { openMove(it, 'IN', reload); }, 'box'));
+      }
+      var m = E.modal({ title: t('inv.detail'), size: 'lg', body: html, footer: foot });
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  // panel suku cadang di detail WO
+  function woPanel(woId, box, reload) {
+    E.api('inventory.forWO', { workOrderId: woId }).then(function (d) {
+      box.innerHTML = '<h4>' + esc(t('inv.partsUsed')) + '</h4>' + (d.rows.length ? d.rows.map(function (r) {
+        return '<div class="row-between"><span>' + esc(r.ItemCode + ' · ' + r.ItemName) + ' <b>' + num(r.Quantity) + ' ' + esc(r.Unit) + '</b></span>' +
+          (d.can.use ? ' <button class="btn" data-ret="' + esc(r.ItemCode) + '" data-q="' + r.Quantity + '">' + esc(t('inv.return')) + '</button>' : '') + '</div>';
+      }).join('') : '<span class="sub">' + esc(t('inv.noParts')) + '</span>') +
+        (d.can.use ? '<div style="margin:6px 0"><button class="btn" id="wpu">' + E.ic('box') + '<span>' + esc(t('inv.use')) + '</span></button></div>' : '');
+      if ($('#wpu', box)) $('#wpu', box).onclick = function () { openUse(woId, reload); };
+      $$('[data-ret]', box).forEach(function (b) {
+        b.onclick = function () {
+          E.askText(t('inv.return'), t('f.Quantity'), true).then(function (r) {
+            if (r) E.api('inventory.returnFromWO', { WorkOrderID: woId, ItemCode: b.dataset.ret, Quantity: r.text }).then(function () { E.toast(t('common.saved')); reload(); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+          });
+        };
+      });
+    }).catch(function (e) { box.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+  }
+
+  function openUse(woId, onDone) {
+    E.api('inventory.list', {}).then(function (d) {
+      var html = '<div class="grid">' + E.fieldHtml({ name: 'ItemCode', type: 'select', required: true, full: true, options: [{ v: '', l: '-' }].concat(d.rows.map(function (r) { return { v: r.ItemCode, l: r.ItemCode + ' · ' + r.ItemName + ' (' + num(r.CurrentStock) + ' ' + r.Unit + ')' }; })) }, '') +
+        E.fieldHtml({ name: 'Quantity', required: true, max: 12 }, '1') + E.fieldHtml({ name: 'Remarks', max: 300 }, '') + '</div>';
+      var busy = false;
+      var go = E.btn(t('inv.use'), 'primary', function () {
+        if (busy) return; busy = true; go.disabled = true;
+        var f = E.readForm(m.body); f.WorkOrderID = woId;
+        E.api('inventory.useOnWO', f).then(function (r) { m.close(); E.toast(t('inv.done', { n: num(r.StockAfter) })); if (onDone) onDone(); })
+          .catch(function (e) { busy = false; go.disabled = false; if (!E.markErrors(m.body, e)) E.toast(E.errText(e), 'err'); });
+      }, 'box');
+      var m = E.modal({ title: t('inv.use'), size: 'md', body: html, footer: [E.btn(t('common.cancel'), '', function () { m.close(); }), go], sticky: true });
+    }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+  }
+
+  var F = { tab: 'items', q: '', low: false };
+  E.pages.inventory = {
+    openDetail: openDetail, woPanel: woPanel,
+    render: function (el) {
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.inventory')) + '</h1><span id="itools"></span></div><div class="tabs"><button data-t="items">' + esc(t('inv.tabItems')) + '</button><button data-t="tx">' + esc(t('inv.tabTx')) + '</button></div>' +
+        '<div class="toolbar" id="ibar"><input class="grow" type="search" id="iq" placeholder="' + esc(t('eq.searchPh')) + '" value="' + esc(F.q) + '"><label class="sub"><input type="checkbox" id="ilow"' + (F.low ? ' checked' : '') + '> ' + esc(t('inv.onlyLow')) + '</label></div><div id="ibody"></div>';
+      if (E.can('inventory.manage')) $('#itools', el).appendChild(E.btn(t('inv.add'), 'primary', function () { openItemForm(null, load); }, 'box'));
+      var rows = [];
+      function draw() {
+        if (F.tab === 'tx') { $('#ibody', el).innerHTML = '<div class="card">' + txTable(rows) + '</div>'; return; }
+        $('#ibody', el).innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.ItemCode')) + '</th><th>' + esc(t('f.ItemName')) + '</th><th>' + esc(t('inv.stock')) + '</th><th class="hide-sm">' + esc(t('f.MinimumStock')) + '</th><th class="hide-sm">' + esc(t('f.StorageLocation')) + '</th><th></th></tr></thead><tbody>' +
+          (rows.length ? rows.map(function (r) {
+            return '<tr data-id="' + esc(r.ItemCode) + '" style="cursor:pointer"><td><b>' + esc(r.ItemCode) + '</b></td><td>' + esc(r.ItemName) + '<div class="sub">' + esc([r.Brand, r.Category].filter(Boolean).join(' · ')) + '</div></td><td><b>' + num(r.CurrentStock) + '</b> ' + esc(r.Unit) + '</td><td class="hide-sm">' + num(r.MinimumStock) +
+              '</td><td class="hide-sm">' + esc(r.StorageLocation) + '</td><td>' + stockBadge(r) + '</td></tr>';
+          }).join('') : '<tr><td colspan="6" class="empty">' + esc(t('inv.noData')) + '</td></tr>') + '</tbody></table></div></div>';
+        $$('tr[data-id]', el).forEach(function (tr) { tr.onclick = function () { openDetail(tr.dataset.id, load); }; });
+      }
+      function load() {
+        $$('.tabs button', el).forEach(function (b) { b.classList.toggle('on', b.dataset.t === F.tab); });
+        $('#ibar', el).style.display = F.tab === 'tx' ? 'none' : '';
+        var p = F.tab === 'tx' ? E.api('inventory.transactions', {}) : E.api('inventory.list', { q: F.q, low: F.low });
+        p.then(function (d) { rows = d.rows; draw(); }).catch(function (e) { $('#ibody', el).innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+      }
+      $$('.tabs button', el).forEach(function (b) { b.onclick = function () { F.tab = b.dataset.t; load(); }; });
+      var tm; $('#iq', el).oninput = function () { F.q = this.value; clearTimeout(tm); tm = setTimeout(load, 250); };
+      $('#ilow', el).onchange = function () { F.low = this.checked; load(); };
+      load();
+    }
+  };
+})();
+</script>

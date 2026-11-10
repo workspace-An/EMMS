@@ -372,6 +372,21 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     await page.waitForSelector('.modal [name=Title]'); await page.locator('.modal-f').last().locator('.btn.primary').click(); await page.waitForSelector('.modal', { state: 'detached' });
     assert.ok(ctx.Db.all('WORK_ORDERS').some(w => w.SourceType === 'Safety' && w.SourceID === f.SafetyID));
   });
+  await t('Inventaris: tambah item, terima barang, pakai di WO, stok menipis di dashboard', async () => {
+    await page.click('[data-nav=inventory]'); await page.waitForSelector('#itools button');
+    await page.click('#itools button'); await page.waitForSelector('.modal [name=ItemName]');
+    await page.fill('.modal [name=ItemName]', 'MCB 16A'); await page.fill('.modal [name=Unit]', 'pcs'); await page.fill('.modal [name=MinimumStock]', '5'); await page.fill('.modal [name=CurrentStock]', '8');
+    await page.locator('.modal-f').last().locator('.btn.primary').click(); await page.waitForSelector('.modal', { state: 'detached' });
+    const it = ctx.Db.all('SPARE_PARTS').find(x => x.ItemName === 'MCB 16A'); assert.ok(it); assert.strictEqual(Number(it.CurrentStock), 8);
+    await page.waitForSelector('#ibody tr[data-id]'); await page.locator('#ibody tr', { hasText: 'MCB 16A' }).click(); await page.waitForSelector('.modal-f');
+    await page.locator('.modal-f button', { hasText: 'Keluarkan' }).click(); await page.waitForSelector('.modal [name=Quantity]');
+    await page.fill('.modal [name=Quantity]', '4'); await page.fill('.modal [name=Remarks]', 'Proyek panel');
+    await page.locator('.modal-f').last().locator('.btn.primary').click(); await page.waitForTimeout(800);
+    assert.strictEqual(Number(ctx.Db.get('SPARE_PARTS', it.ItemCode).CurrentStock), 4);
+    await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.click('[data-nav=dashboard]'); await page.waitForSelector('.cards');
+    assert.ok((await page.textContent('.content')).includes('Stok menipis'));
+  });
   await t('tampilan HP (375px): menu geser & tanpa scroll horizontal halaman', async () => {
     await page.setViewportSize({ width: 375, height: 760 });
     await page.click('[data-nav=dashboard]', { force: true }).catch(() => {});

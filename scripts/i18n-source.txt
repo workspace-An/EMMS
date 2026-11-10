@@ -600,3 +600,44 @@ rule.woOpen|Work Order tindak lanjut masih berjalan|Follow-up work order is stil
 rule.lotoApplierOnly|Hanya pemasang atau Supervisor yang dapat melepas LOTO|Only the applier or a Supervisor can remove LOTO|仅施加人或主管可解除 LOTO
 rule.notActive|LOTO sudah tidak aktif|LOTO is no longer active|LOTO 已不再有效
 rule.noApprovalNeeded|Penilaian ini tidak perlu persetujuan|This assessment needs no approval|此评估无需批准
+inv.low|Menipis|Low|不足
+inv.ok|Cukup|OK|充足
+inv.add|Tambah suku cadang|Add spare part|添加备件
+inv.edit|Ubah suku cadang|Edit spare part|编辑备件
+inv.detail|Detail suku cadang|Spare part detail|备件详情
+inv.stock|Stok|Stock|库存
+inv.stockNow|Stok saat ini: {n} {u}|Current stock: {n} {u}|当前库存：{n} {u}
+inv.tx.IN|Terima barang|Receive|入库
+inv.tx.OUT|Keluarkan|Issue|出库
+inv.tx.ADJUST|Penyesuaian (opname)|Adjust (stock take)|盘点调整
+inv.adjustHint|Isi jumlah hasil hitung fisik; stok akan diganti dengan angka ini dan selisihnya dicatat.|Enter the physical count; stock will be set to this value and the difference recorded.|填写实盘数量；库存将改为该值并记录差异。
+inv.done|Tersimpan. Stok sekarang {n}.|Saved. Stock is now {n}.|已保存。当前库存 {n}。
+inv.lowNotified|Stok menipis: email terkirim ke {n} penerima.|Low stock: email sent to {n} recipients.|库存不足：已邮件通知 {n} 人。
+inv.lowNotNotified|Stok menipis, tetapi email tidak terkirim.|Low stock, but the email could not be sent.|库存不足，但邮件未能发送。
+inv.history|Riwayat mutasi|Movement history|变动记录
+inv.before|Sebelum|Before|之前
+inv.after|Sesudah|After|之后
+inv.noTx|Belum ada mutasi.|No movements yet.|暂无变动。
+inv.noData|Belum ada suku cadang.|No spare parts yet.|暂无备件。
+inv.tabItems|Daftar stok|Stock list|库存清单
+inv.tabTx|Mutasi|Movements|变动
+inv.onlyLow|Hanya yang menipis|Low stock only|仅显示不足
+inv.partsUsed|Suku cadang dipakai|Spare parts used|已用备件
+inv.noParts|Belum ada pemakaian suku cadang.|No parts used yet.|尚未使用备件。
+inv.use|Pakai suku cadang|Use spare part|领用备件
+inv.return|Kembalikan|Return|退回
+f.ItemCode|Kode|Code|编码
+f.MinimumStock|Stok minimum|Minimum stock|最低库存
+f.CurrentStock|Stok awal|Opening stock|期初库存
+f.Quantity|Jumlah|Quantity|数量
+f.Reference|Referensi (No. PO/surat jalan)|Reference (PO / delivery note)|参考（采购单/送货单）
+f.StorageLocation|Lokasi penyimpanan|Storage location|存放位置
+f.Supplier|Pemasok|Supplier|供应商
+f.Specification|Spesifikasi|Specification|规格
+f.Category|Kategori|Category|类别
+f.Date|Tanggal|Date|日期
+f.Type|Jenis|Type|类型
+dash.lowStock|Stok menipis|Low stock|库存不足
+rule.insufficient|Stok tidak mencukupi|Insufficient stock|库存不足
+rule.stockNotZero|Stok harus 0 sebelum dihapus|Stock must be 0 before deleting|删除前库存须为 0
+rule.returnExceeds|Pengembalian melebihi jumlah yang dipakai WO|Return exceeds the quantity used on this WO|退回数量超过工单已用数量

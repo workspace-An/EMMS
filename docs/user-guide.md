@@ -35,3 +35,9 @@
 - **WO dari temuan**: tombol "Buat Work Order" di detail temuan. Di detail WO ada panel risiko dan LOTO.
 - **LOTO**: teknisi yang ditugaskan memasang LOTO (titik isolasi, no. gembok, verifikasi 0 V) sebelum bekerja dan melepasnya sebelum WO diselesaikan.
 - **Tutup temuan**: isi tindakan yang dilakukan; syarat: WO tindak lanjut sudah selesai/tutup dan risiko (bila High/Critical) sudah dinilai dan disetujui.
+
+## Inventaris / Suku cadang (Phase 6)
+- **Tambah/ubah item** (Manager/Admin). Stok awal hanya diisi saat membuat item; selanjutnya stok berubah lewat transaksi.
+- **Terima / Keluarkan** (Supervisor ke atas). Keluarkan wajib alasan. **Penyesuaian (opname)** hanya Manager/Admin: isi hasil hitung fisik dan alasan.
+- **Pakai di WO**: di detail WO, teknisi yang ditugaskan menekan "Pakai suku cadang". Salah pakai dapat dikembalikan (maksimal sebanyak yang dipakai).
+- **Stok menipis**: item dengan stok <= minimum ditandai dan memicu email; atur minimum 0 untuk mematikan peringatan item tertentu.

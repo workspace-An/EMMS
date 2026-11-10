@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0-phase6 - Inventory (Suku Cadang)
+> Catatan: teks spesifikasi asli Phase 6 tidak tersedia; fitur disusun dari skema Phase 1 (SPARE_PARTS, INVENTORY_TRANSACTIONS) dan praktik CMMS umum. Mohon dicocokkan dengan kebutuhan pabrik.
+- Menu **Inventaris**: daftar stok (cari, filter "hanya yang menipis", penanda Menipis/Cukup), detail dengan riwayat mutasi, tab Mutasi (300 terakhir).
+- Master suku cadang (Admin/Manager): nama, kategori, merek, spesifikasi, satuan, stok minimum, lokasi simpan, pemasok. Item kembar (nama+merek+spesifikasi) ditolak; hapus hanya saat stok 0 dan wajib alasan; edit memakai pengaman konflik.
+- **Stok hanya berubah lewat transaksi** yang dihitung server di dalam kunci: Terima (IN, Supervisor+), Keluarkan (OUT, Supervisor+, alasan wajib), Penyesuaian/opname (ADJUST, hanya Manager/Admin, alasan wajib). StockBefore/StockAfter dicatat; stok tidak boleh negatif; stok awal tercatat sebagai transaksi.
+- **Pemakaian pada Work Order**: panel "Suku cadang dipakai" di detail WO. Teknisi yang ditugaskan (atau Supervisor+) memakai stok pada WO Approved/In Progress; pengembalian tidak boleh melebihi jumlah yang dipakai WO itu.
+- **Stok menipis**: saat stok turun melewati minimum, email ke Supervisor/Manager/Admin sekali per penurunan (tahan gagal & kuota). Dashboard: kartu "Stok menipis".
+- Rute `inventory.*`, izin `inventory.view/use/stock/manage`. Skema tidak berubah dari Phase 5 (tidak perlu kolom baru), namun tetap jalankan `setupEMMS()` setelah update.
+- Uji: backend 16 (Phase 6), Phase 1-5 tetap lulus, E2E 35, `runSelfTestPhase6()`.
+- Batasan: belum ada purchase order, reservasi stok, lot/serial, atau satuan konversi; stok per satu gudang.
+
 ## 1.4.0-phase5 - K3 Listrik (Electrical Safety)
 > Catatan: teks spesifikasi asli Phase 5 tidak tersedia saat membangun; fitur disusun dari skema Phase 1 (ELECTRICAL_SAFETY, RISK_ASSESSMENTS, LOTO_RECORDS) dan praktik K3/CMMS umum. Mohon dicocokkan dengan kebutuhan pabrik.
 - Menu **K3 Listrik**: temuan (jenis: kondisi/tindakan tidak aman, nyaris celaka, insiden, bahaya peralatan; kategori: grounding, isolasi, panas berlebih, arc, bagian bertegangan terbuka, proteksi, label, kerapian), tingkat risiko awal, tindakan diperlukan, sampai 5 foto. Status Open -> In Action -> Closed / Dismissed.

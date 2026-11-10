@@ -60,7 +60,8 @@ const Dashboard = {
         cmActive: cmOpen.length,
         woOpen: woOpen.length,
         woAwaiting: woOpen.filter(function (w) { return w.Status === 'Requested'; }).length,
-        k3Findings: k3Open.length
+        k3Findings: k3Open.length,
+        lowStock: Db.where('SPARE_PARTS', function (r) { return Inventory.low_(r); }).length
       },
       charts: {
         condition: { labels: CFG.CONDITIONS, values: CFG.CONDITIONS.map(function (c) { return byCond[c] || 0; }) },

@@ -152,7 +152,17 @@ function getRoutes_() {
     'risk.approve': { perm: 'safety.approve', fn: function (p, u) { return Risk.approve(p, u); } },
     'loto.list': { perm: 'safety.view', fn: function (p, u) { return Loto.list(p, u); } },
     'loto.apply': { perm: 'safety.loto', fn: function (p, u) { return Loto.apply(p, u); } },
-    'loto.remove': { perm: 'safety.loto', fn: function (p, u) { return Loto.remove(p, u); } }
+    'loto.remove': { perm: 'safety.loto', fn: function (p, u) { return Loto.remove(p, u); } },
+
+    'inventory.list': { perm: 'inventory.view', fn: function (p) { return Inventory.list(p); } },
+    'inventory.get': { perm: 'inventory.view', fn: function (p) { return Inventory.get(p); } },
+    'inventory.save': { perm: 'inventory.manage', fn: function (p, u) { return Inventory.save(p, u); } },
+    'inventory.remove': { perm: 'inventory.manage', fn: function (p, u) { return Inventory.remove(p, u); } },
+    'inventory.transact': { perm: 'inventory.stock', fn: function (p, u) { return Inventory.transact(p, u); } },
+    'inventory.transactions': { perm: 'inventory.view', fn: function (p) { return Inventory.transactions(p); } },
+    'inventory.forWO': { perm: 'inventory.view', fn: function (p, u) { return Inventory.forWO(p, u); } },
+    'inventory.useOnWO': { perm: 'inventory.use', fn: function (p, u) { return Inventory.useOnWO(p, u); } },
+    'inventory.returnFromWO': { perm: 'inventory.use', fn: function (p, u) { return Inventory.returnFromWO(p, u); } }
   };
 }
 

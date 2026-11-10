@@ -654,3 +654,60 @@ function runSelfTestPhase5() {
   Logger.log(out);
   return out;
 }
+
+/**
+ * Uji mandiri Phase 6 (Inventory) di spreadsheet nyata. Jalankan dari editor Apps Script.
+ * Membuat item uji dengan minimum 0 (tanpa email) lalu menghapusnya.
+ */
+function runSelfTestPhase6() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const eq = function (a, b, m) { if (a !== b) throw new Error((m || 'nilai') + ': diharapkan ' + b + ', dapat ' + a); };
+  const A = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+  const S = { email: 'selftest-sup@example.com', name: 'Self Test 2', role: 'Supervisor' };
+  let code = '', e1 = null, woId = '';
+
+  t('Sheet & kolom Phase 6 lengkap (jalankan setupEMMS() bila gagal)', function () {
+    ['SPARE_PARTS', 'INVENTORY_TRANSACTIONS'].forEach(function (n) {
+      const h = Db.headers(n);
+      Schema.columns(n).forEach(function (c) { if (h.indexOf(c.name) === -1) throw new Error(n + ' kehilangan kolom ' + c.name); });
+    });
+  });
+  t('Buat item dengan stok awal; validasi', function () {
+    ensureThrows_(function () { Inventory.save({ ItemName: '' }, A); }, 'VALIDATION');
+    code = Inventory.save({ ItemName: 'ZZTEST PART', Unit: 'pcs', MinimumStock: 0, CurrentStock: 10 }, A).ItemCode;
+    eq(Number(Db.get('SPARE_PARTS', code).CurrentStock), 10);
+  });
+  t('IN/OUT, stok tidak boleh negatif', function () {
+    Inventory.transact({ ItemCode: code, TransactionType: 'IN', Quantity: 5 }, S);
+    Inventory.transact({ ItemCode: code, TransactionType: 'OUT', Quantity: 3, Remarks: 'uji' }, S);
+    eq(Number(Db.get('SPARE_PARTS', code).CurrentStock), 12);
+    ensureThrows_(function () { Inventory.transact({ ItemCode: code, TransactionType: 'OUT', Quantity: 999, Remarks: 'x' }, S); }, 'CONFLICT');
+    ensureThrows_(function () { Inventory.transact({ ItemCode: code, TransactionType: 'ADJUST', Quantity: 1, Remarks: 'x' }, S); }, 'FORBIDDEN');
+  });
+  t('Pemakaian pada WO & pengembalian dibatasi', function () {
+    const cat = Db.all('EQUIPMENT_CATEGORIES')[0], loc = Db.all('LOCATIONS')[0];
+    e1 = Equipment.create({ EquipmentName: 'ZZTEST INV', CategoryID: cat.CategoryID, BuildingID: loc.BuildingID, LocationID: loc.LocationID, SerialNumber: 'ZZ-P6', Brand: 'ZZ' }, A);
+    woId = WO.create({ SourceType: 'Manual', SourceID: '', EquipmentID: e1.EquipmentID, Title: 'ZZTEST WO INV', Priority: 'Low', tasks: ['a'] }, S).WorkOrderID;
+    WO.decide({ id: woId, decision: 'Approved' }, A);
+    Inventory.useOnWO({ WorkOrderID: woId, ItemCode: code, Quantity: 2 }, S);
+    eq(Number(Db.get('SPARE_PARTS', code).CurrentStock), 10);
+    ensureThrows_(function () { Inventory.returnFromWO({ WorkOrderID: woId, ItemCode: code, Quantity: 3 }, S); }, 'CONFLICT');
+    Inventory.returnFromWO({ WorkOrderID: woId, ItemCode: code, Quantity: 2 }, S);
+    eq(Number(Db.get('SPARE_PARTS', code).CurrentStock), 12);
+  });
+  t('Bersihkan data uji', function () {
+    Db.where('INVENTORY_TRANSACTIONS', function (x) { return x.ItemCode === code; }).forEach(function (x) { Db.hardDelete('INVENTORY_TRANSACTIONS', x.TransactionID); });
+    Db.where('WORK_ORDER_TASKS', function (k) { return k.WorkOrderID === woId; }).forEach(function (k) { Db.hardDelete('WORK_ORDER_TASKS', k.TaskID); });
+    Db.hardDelete('WORK_ORDERS', woId);
+    Db.hardDelete('SPARE_PARTS', code);
+    Equipment.remove({ id: e1.EquipmentID, reason: 'self test', confirmId: e1.EquipmentID }, A);
+  });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
+}

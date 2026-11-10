@@ -3,7 +3,7 @@
 ## Otomatis
 | Perintah | Isi | Lingkungan |
 |---|---|---|
-| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 | Node + **mock** layanan Google |
+| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 + 16 Phase 6 | Node + **mock** layanan Google |
 | `npm run test:e2e` | 34 skenario di Chromium (login OTP, dashboard, equipment, QR, form, bahasa, HP 375px, inspeksi OK/NG, review, checklist, jadwal & pelaksanaan & approval PM, laporan kerusakan, siklus CM, siklus Work Order) | Playwright + mock |
 | `node tests/qr-verify.mjs` | QR dibaca decoder OpenCV (14 kasus) | Python + OpenCV |
 | `runSelfTest()` di Apps Script | 17 uji pada **Sheet sungguhan** | Google |
@@ -78,3 +78,15 @@ Jalankan `setupEMMS()` lalu `runSelfTestPhase5()` (harus semua PASS). Lalu coba 
 | 5 | Teknisi: Mulai WO sebelum risiko disetujui | Ditolak (risiko belum disetujui) |
 | 6 | Teknisi: Pasang LOTO di detail WO, coba Selesai | Selesai ditolak sampai LOTO dilepas |
 | 7 | Lepas LOTO, selesaikan, tutup WO, tutup temuan | Temuan Closed |
+
+## Uji manual Phase 6 (di Google, wajib)
+Jalankan `setupEMMS()` lalu `runSelfTestPhase6()` (semua PASS). Lalu di aplikasi:
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---------|-----------------------|
+| 1 | Manager: Inventaris > Tambah (stok awal 8, minimum 5) | Item SP-xxxx; riwayat berisi "Stok awal" |
+| 2 | Supervisor: Keluarkan 4 (alasan diisi) | Stok 4, badge Menipis, email stok menipis, kartu dashboard bertambah |
+| 3 | Supervisor: Keluarkan 99 | Ditolak "Stok tidak mencukupi" |
+| 4 | Supervisor: Penyesuaian | Tombol tidak ada / ditolak; Manager bisa (alasan wajib) |
+| 5 | Teknisi: detail WO yang ditugaskan > Pakai suku cadang | Stok berkurang, tercatat di panel WO & riwayat |
+| 6 | Kembalikan lebih dari yang dipakai | Ditolak |

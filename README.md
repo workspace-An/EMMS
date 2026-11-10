@@ -3,7 +3,7 @@
 Aplikasi CMMS kelistrikan berbasis **Google Apps Script + Google Sheets + Google Drive** (akun Gmail pribadi, tanpa server/hosting berbayar).
 UI 3 bahasa (Indonesia, English, 中文), responsif untuk komputer/tablet/HP.
 
-**Status: Phase 5 - K3 Listrik** (lihat `CHANGELOG.md`). Phase 6-8 belum dibangun; menu-nya tampil sebagai placeholder.
+**Status: Phase 6 - Inventory** (lihat `CHANGELOG.md`). Phase 7-8 belum dibangun; menu-nya tampil sebagai placeholder.
 
 ## Isi Phase 1
 Database 26 sheet otomatis · login Email OTP + RBAC 5 role (dicek di backend) · manajemen pengguna · dashboard ·
