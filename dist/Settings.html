@@ -99,10 +99,59 @@
     }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
   }
 
+  function tabAutomation(box) {
+    Promise.all([E.api('automation.status', {}), E.api('notifications.list', {})]).then(function (r) {
+      var st = r[0], nt = r[1].rows, edit = E.can('automation.manage');
+      var last = st.last;
+      var html = '<div class="card"><div class="card-b"><h3>' + esc(t('auto.title')) + '</h3><p class="muted">' + esc(t('auto.desc')) + '</p><dl class="dl">' +
+        '<div><dt>' + esc(t('auto.status')) + '</dt><dd>' + (st.enabled && st.triggerInstalled ? E.badge('ok', t('auto.on')) : (st.enabled ? E.badge('warn', t('auto.noTrigger')) : E.badge('gray', t('auto.off')))) + '</dd></div>' +
+        '<div><dt>' + esc(t('sys.mailQuota')) + '</dt><dd>' + esc(st.mailQuota === null ? '-' : st.mailQuota) + '</dd></div>' +
+        '<div style="grid-column:1/-1"><dt>' + esc(t('auto.lastRun')) + '</dt><dd>' + (last ? esc(E.fmtDT(last.finishedAt)) + ' · ' + esc(t('auto.lastSummary', { sent: last.sent, failed: last.failed, skipped: last.skipped })) + (last.quotaStop ? ' · ' + esc(t('auto.quotaStop')) : '') + (last.errors && last.errors.length ? ' · ' + E.badge('bad', last.errors[0]) : '') : esc(t('auto.never'))) + '</dd></div></dl>';
+      if (edit) {
+        html += '<div class="grid" id="afrm">' + E.fieldHtml({ name: 'AUTOMATION_ENABLED', type: 'select', options: [{ v: 'TRUE', l: t('auto.on') }, { v: 'FALSE', l: t('auto.off') }] }, st.enabled ? 'TRUE' : 'FALSE') +
+          E.fieldHtml({ name: 'AUTOMATION_HOUR', max: 2 }, String(st.hour)) + E.fieldHtml({ name: 'OVERDUE_DAYS', max: 2 }, String(st.overdueDays)) + E.fieldHtml({ name: 'SAFETY_ESCALATE_DAYS', max: 2 }, String(st.safetyDays)) + '</div>' +
+          '<div style="margin-top:10px" id="abtn"></div><p class="muted">' + esc(t('auto.help')) + '</p>';
+      }
+      html += '</div></div><div class="card" style="margin-top:12px"><div class="card-b"><h3>' + esc(t('auto.notifLog')) + '</h3><div class="table-wrap"><table><thead><tr><th>' + esc(t('f.Date')) + '</th><th>' + esc(t('f.Type')) + '</th><th>' + esc(t('auto.to')) + '</th><th>' + esc(t('f.Status')) + '</th></tr></thead><tbody>' +
+        (nt.length ? nt.slice(0, 50).map(function (n) { return '<tr><td class="sub" style="white-space:nowrap">' + esc(E.fmtDT(n.SentAt)) + '</td><td>' + esc(n.Type) + '</td><td>' + esc(n.To) + '</td><td>' + E.badge(n.Status === 'Sent' ? 'ok' : 'bad', n.Status) + (n.Error ? '<div class="sub">' + esc(n.Error) + '</div>' : '') + '</td></tr>'; }).join('') : '<tr><td colspan="4" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div></div>';
+      box.innerHTML = html;
+      if (edit) {
+        var bar = $('#abtn', box);
+        bar.appendChild(E.btn(t('common.save'), 'primary', function () {
+          E.api('automation.configure', E.readForm($('#afrm', box))).then(function () { E.toast(t('common.saved'), 'ok'); tabAutomation(box); }).catch(function (e) { if (!E.markErrors($('#afrm', box), e)) E.toast(E.errText(e), 'err'); });
+        }, 'check'));
+        bar.appendChild(document.createTextNode(' '));
+        bar.appendChild(E.btn(t('auto.preview'), '', function () {
+          E.api('automation.runNow', { dryRun: true }).then(function (r) { E.toast(t('auto.previewResult', { n: r.sent, e: r.empty })); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+        }));
+        bar.appendChild(document.createTextNode(' '));
+        bar.appendChild(E.btn(t('auto.runNow'), '', function () {
+          E.confirmDlg({ title: t('auto.runNow'), message: t('auto.runConfirm'), confirmLabel: t('auto.runNow') }).then(function (ok) {
+            if (ok) E.api('automation.runNow', { force: true }).then(function (r) { E.toast(t('auto.lastSummary', { sent: r.sent, failed: r.failed, skipped: r.skipped }), r.failed ? 'err' : 'ok'); tabAutomation(box); }).catch(function (e) { E.toast(E.errText(e), 'err'); });
+          });
+        }));
+      }
+    }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+  }
+
+  function tabApprovals(box) {
+    Promise.all([E.api('approvals.list', {}), E.can('automation.view') ? E.api('approvals.verify', {}) : Promise.resolve(null)]).then(function (r) {
+      var rows = r[0].rows, v = r[1];
+      box.innerHTML = '<div class="card"><div class="card-b">' + (v ? (v.invalid ? '<div class="notice" style="border-color:var(--red)">' + esc(t('appr.tampered', { n: v.invalid })) + ' ' + esc(v.ids.join(', ')) + '</div>' : '<div class="notice">' + esc(t('appr.allValid', { n: v.total })) + '</div>') : '') +
+        '<div class="table-wrap"><table><thead><tr><th>' + esc(t('f.Date')) + '</th><th>' + esc(t('appr.ref')) + '</th><th>' + esc(t('appr.decision')) + '</th><th>' + esc(t('appr.by')) + '</th><th>' + esc(t('appr.sig')) + '</th></tr></thead><tbody>' +
+        (rows.length ? rows.map(function (a) {
+          return '<tr><td class="sub" style="white-space:nowrap">' + esc(E.fmtDT(a.At)) + '</td><td><b>' + esc(a.RefType) + '</b> ' + esc(a.RefID) + '<div class="sub">L' + esc(a.Level) + '</div></td><td>' + E.badge(a.Decision === 'Rejected' ? 'bad' : 'ok', a.Decision) + (a.Remarks ? '<div class="sub">' + esc(a.Remarks) + '</div>' : '') +
+            '</td><td>' + esc(a.By) + '<div class="sub">' + esc(a.Role) + '</div></td><td class="sub"><code>' + esc(a.Signature) + '</code> ' + (a.Valid ? E.badge('ok', t('appr.valid')) : E.badge('bad', t('appr.invalid'))) + '</td></tr>';
+        }).join('') : '<tr><td colspan="5" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div></div>';
+    }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+  }
+
   E.pages.settings = {
     render: function (el) {
       var tabs = [['general', 'settings.general', tabGeneral], ['master', 'settings.master', tabMaster]];
       if (E.can('audit.view')) tabs.push(['audit', 'settings.audit', tabAudit]);
+      if (E.can('automation.view')) tabs.push(['automation', 'settings.automation', tabAutomation]);
+      if (E.can('approvals.view')) tabs.push(['approvals', 'settings.approvals', tabApprovals]);
       if (E.can('settings.edit')) tabs.push(['system', 'settings.system', tabSystem]);
       el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.settings')) + '</h1></div><div class="tabs">' + tabs.map(function (x) { return '<button data-t="' + x[0] + '">' + esc(t(x[1])) + '</button>'; }).join('') + '</div><div id="stab"></div>';
       function show(k) {

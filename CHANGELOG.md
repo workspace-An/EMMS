@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.0-phase7 - Automation & Approval
+> Catatan: teks spesifikasi asli Phase 7 tidak tersedia; fitur disusun dari skema Phase 1 (APPROVALS, NOTIFICATIONS) dan komentar kode Phase 2 ("jadwal PM, overdue, NG, Work Order, stok minimum, trigger terjadwal"). Mohon dicocokkan dengan kebutuhan pabrik.
+- **Job harian otomatis** (trigger waktu `emmsDailyJob`): ringkasan harian ke Supervisor/Manager/Admin (persetujuan tertunda, PM terlambat/segera, CM & WO terlambat/kritis, temuan K3 High/Critical yang lama, stok menipis, equipment belum diinspeksi) dan satu email tugas per teknisi (PM jatuh tempo/terlambat, CM & WO miliknya).
+- Hemat kuota Gmail: email digabung per penerima, tidak dikirim bila kosong, manajemen didahulukan, berhenti saat kuota habis, satu kali per penerima per tanggal (idempoten), isian pengguna di-escape. Kegagalan kirim dicatat dan tidak menghentikan job.
+- **Pengaturan > Otomasi** (Admin mengatur, Manager melihat): aktif/nonaktif, jam, batas hari terlambat CM/WO, batas hari eskalasi K3; memasang/menghapus trigger tanpa menggandakan; status & ringkasan eksekusi terakhir; Pratinjau (tanpa kirim); Jalankan sekarang; log notifikasi (Sent/Failed).
+- **Riwayat approval bertanda tangan** (Pengaturan > Riwayat approval): keputusan PM, Work Order, penilaian risiko, serta verifikasi tutup CM/WO direkam ke APPROVALS dengan peran, level, dan SignatureHash (SHA-256 + garam rahasia). Tombol verifikasi otomatis menandai catatan yang diedit manual di sheet. Keputusan yang ditolak aturan (mis. menyetujui sendiri) tidak terekam.
+- Housekeeping: sesi login kedaluwarsa/dicabut > 7 hari dihapus oleh job harian.
+- Izin baru `approvals.view`, `automation.view`, `automation.manage`; rute `automation.*`, `notifications.list`, `approvals.*`. Pengaturan baru AUTOMATION_ENABLED (default FALSE), AUTOMATION_HOUR (6), OVERDUE_DAYS (7), SAFETY_ESCALATE_DAYS (3).
+- Skema: kolom baru APPROVALS.ApproverEmail. **Jalankan ulang `setupEMMS()` setelah update.** Otorisasi ulang akan meminta izin "trigger" (sudah ada di manifest).
+- Uji: backend 18 (Phase 7), Phase 1-6 tetap lulus, E2E 36, `runSelfTestPhase7()`.
+- Batasan: approval bertingkat/multi-level belum ada (level 1 = keputusan, level 2 = verifikasi tutup); tanda tangan melindungi dari edit manual tetapi bukan dari pemilik script yang memegang garam; trigger Apps Script berjalan pada jendela ±1 jam dari jam yang dipilih.
+
 ## 1.5.0-phase6 - Inventory (Suku Cadang)
 > Catatan: teks spesifikasi asli Phase 6 tidak tersedia; fitur disusun dari skema Phase 1 (SPARE_PARTS, INVENTORY_TRANSACTIONS) dan praktik CMMS umum. Mohon dicocokkan dengan kebutuhan pabrik.
 - Menu **Inventaris**: daftar stok (cari, filter "hanya yang menipis", penanda Menipis/Cukup), detail dengan riwayat mutasi, tab Mutasi (300 terakhir).

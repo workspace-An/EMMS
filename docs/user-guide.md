@@ -41,3 +41,8 @@
 - **Terima / Keluarkan** (Supervisor ke atas). Keluarkan wajib alasan. **Penyesuaian (opname)** hanya Manager/Admin: isi hasil hitung fisik dan alasan.
 - **Pakai di WO**: di detail WO, teknisi yang ditugaskan menekan "Pakai suku cadang". Salah pakai dapat dikembalikan (maksimal sebanyak yang dipakai).
 - **Stok menipis**: item dengan stok <= minimum ditandai dan memicu email; atur minimum 0 untuk mematikan peringatan item tertentu.
+
+## Otomasi & Approval (Phase 7)
+- **Job harian**: Pengaturan > Otomasi (Admin). Aktifkan, pilih jam, Simpan. Manajemen menerima ringkasan harian, teknisi menerima daftar tugas; email hanya dikirim bila ada isinya dan maksimal sekali per hari.
+- **Kuota email**: Gmail pribadi sekitar 100 email/hari (dibagi dengan kode OTP login). Job berhenti otomatis bila kuota habis; lihat sisa kuota di tab Otomasi.
+- **Riwayat approval**: Pengaturan > Riwayat approval (Supervisor ke atas). Setiap keputusan punya tanda tangan digital; baris merah "TIDAK VALID" berarti catatan diubah di luar aplikasi.

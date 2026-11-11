@@ -373,6 +373,7 @@ const PM = {
       }
       Audit.log(user, decision === 'Approved' ? 'PM_APPROVE' : 'PM_REJECT', 'PREVENTIVE_MAINTENANCE', id,
         { remarks: remarks, selfApproved: Auth.norm(r.TechnicianEmail) === Auth.norm(user.email) }, 'OK');
+      Approvals.record('PM', id, 1, decision, user, remarks);
       return { rec: r, sch: sch };
     });
     if (out.sch) PM.syncCalendar_(out.sch, Db.get('EQUIPMENT', out.sch.EquipmentID));

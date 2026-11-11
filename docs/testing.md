@@ -3,7 +3,7 @@
 ## Otomatis
 | Perintah | Isi | Lingkungan |
 |---|---|---|
-| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 + 16 Phase 6 | Node + **mock** layanan Google |
+| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 + 16 Phase 6 + 18 Phase 7 | Node + **mock** layanan Google |
 | `npm run test:e2e` | 34 skenario di Chromium (login OTP, dashboard, equipment, QR, form, bahasa, HP 375px, inspeksi OK/NG, review, checklist, jadwal & pelaksanaan & approval PM, laporan kerusakan, siklus CM, siklus Work Order) | Playwright + mock |
 | `node tests/qr-verify.mjs` | QR dibaca decoder OpenCV (14 kasus) | Python + OpenCV |
 | `runSelfTest()` di Apps Script | 17 uji pada **Sheet sungguhan** | Google |
@@ -90,3 +90,17 @@ Jalankan `setupEMMS()` lalu `runSelfTestPhase6()` (semua PASS). Lalu di aplikasi
 | 4 | Supervisor: Penyesuaian | Tombol tidak ada / ditolak; Manager bisa (alasan wajib) |
 | 5 | Teknisi: detail WO yang ditugaskan > Pakai suku cadang | Stok berkurang, tercatat di panel WO & riwayat |
 | 6 | Kembalikan lebih dari yang dipakai | Ditolak |
+
+## Uji manual Phase 7 (di Google, wajib)
+Jalankan `setupEMMS()` lalu `runSelfTestPhase7()` (semua PASS). Lalu di aplikasi (Admin):
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---------|-----------------------|
+| 1 | Pengaturan > Otomasi: Aktif, jam 6, Simpan | Status "Aktif"; di Apps Script > Triggers tampil satu trigger `emmsDailyJob` |
+| 2 | Simpan lagi dengan jam lain | Tetap satu trigger (tidak ganda) |
+| 3 | Pratinjau (tanpa kirim) | Toast jumlah email yang akan dikirim; tidak ada email masuk |
+| 4 | Jalankan sekarang | Manajemen menerima "Ringkasan harian"; teknisi yang punya tugas menerima "Tugas Anda"; log notifikasi bertambah |
+| 5 | Jalankan sekarang lagi tanpa konfirmasi paksa (jalankan dari trigger) | Tidak ada email ganda di hari yang sama |
+| 6 | Setujui sebuah WO sebagai Manager | Riwayat approval menampilkan baris valid |
+| 7 | Edit kolom Decision di sheet APPROVALS secara manual | Riwayat approval menampilkan peringatan "tidak valid" |
+| 8 | Nonaktifkan | Trigger terhapus |

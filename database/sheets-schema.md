@@ -29,9 +29,9 @@ Semua sel diformat **teks** dan ditulis sebagai string. Tipe di bawah adalah tip
 | 19 | LOTO_RECORDS | LOTOID | WorkOrderID -> WORK_ORDERS; EquipmentID -> EQUIPMENT | Catatan Lock Out Tag Out (Phase 5). Status: Active/Removed. Satu LOTO aktif per equipment. |
 | 20 | SPARE_PARTS | ItemCode | - | Master spare part (Phase 6). |
 | 21 | INVENTORY_TRANSACTIONS | TransactionID | ItemCode -> SPARE_PARTS; ReferenceID -> WORK_ORDERS (bila ReferenceType=WO) | Mutasi stok (Phase 6). TransactionType: IN/OUT/ADJUST. |
-| 22 | APPROVALS | ApprovalID | RefType + RefID -> tabel terkait | Riwayat approval & tanda tangan digital sederhana (Phase 7). |
+| 22 | APPROVALS | ApprovalID | RefType + RefID -> tabel terkait | Riwayat approval (Phase 7). RefType: PM/WO/RISK/CM/WO_CLOSE. SignatureHash = SHA-256(ref|keputusan|email|waktu|garam) untuk mendeteksi perubahan manual. |
 | 23 | ATTACHMENTS | AttachmentID | RefType + RefID -> tabel terkait | Metadata file di Google Drive (foto/dokumen). File privat; dibaca via backend. |
-| 24 | NOTIFICATIONS | NotificationID | RefType + RefID -> tabel terkait | Log notifikasi email (Phase 7). |
+| 24 | NOTIFICATIONS | NotificationID | RefType + RefID -> tabel terkait | Log notifikasi email. NotificationType: CRITICAL_FINDING/SAFETY_FINDING/LOW_STOCK/DAILY_DIGEST/TECH_REMINDER/ASSIGNMENT dst. |
 | 25 | AUDIT_LOG | AuditID | Entity + EntityID -> tabel terkait | Catatan audit append-only seluruh aktivitas penting. |
 | 26 | SESSIONS | SessionID | Email -> USERS.Email | Tambahan sistem: sesi login (hanya hash token). Sheet tersembunyi; jangan diedit manual. |
 
@@ -542,7 +542,7 @@ Mutasi stok (Phase 6). TransactionType: IN/OUT/ADJUST.
 
 ## APPROVALS
 
-Riwayat approval & tanda tangan digital sederhana (Phase 7).
+Riwayat approval (Phase 7). RefType: PM/WO/RISK/CM/WO_CLOSE. SignatureHash = SHA-256(ref|keputusan|email|waktu|garam) untuk mendeteksi perubahan manual.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -556,6 +556,7 @@ Riwayat approval & tanda tangan digital sederhana (Phase 7).
 | Decision | text |  |
 | Remarks | text |  |
 | SignatureHash | text |  |
+| ApproverEmail | text |  |
 | CreatedAt | datetime |  |
 | CreatedBy | text |  |
 | UpdatedAt | datetime |  |
@@ -584,7 +585,7 @@ Metadata file di Google Drive (foto/dokumen). File privat; dibaca via backend.
 
 ## NOTIFICATIONS
 
-Log notifikasi email (Phase 7).
+Log notifikasi email. NotificationType: CRITICAL_FINDING/SAFETY_FINDING/LOW_STOCK/DAILY_DIGEST/TECH_REMINDER/ASSIGNMENT dst.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|

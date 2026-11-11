@@ -162,6 +162,13 @@ function getRoutes_() {
     'inventory.transactions': { perm: 'inventory.view', fn: function (p) { return Inventory.transactions(p); } },
     'inventory.forWO': { perm: 'inventory.view', fn: function (p, u) { return Inventory.forWO(p, u); } },
     'inventory.useOnWO': { perm: 'inventory.use', fn: function (p, u) { return Inventory.useOnWO(p, u); } },
+    'automation.status': { perm: 'automation.view', fn: function () { return Automation.status(); } },
+    'automation.configure': { perm: 'automation.manage', fn: function (p, u) { return Automation.configure(p, u); } },
+    'automation.runNow': { perm: 'automation.manage', fn: function (p, u) { return Automation.run({ force: !!(p && p.force), dryRun: !!(p && p.dryRun) }, u); } },
+    'notifications.list': { perm: 'automation.view', fn: function (p) { return Automation.notifications(p); } },
+    'approvals.list': { perm: 'approvals.view', fn: function (p) { return Approvals.list(p); } },
+    'approvals.verify': { perm: 'automation.view', fn: function () { return Approvals.verify(); } },
+
     'inventory.returnFromWO': { perm: 'inventory.use', fn: function (p, u) { return Inventory.returnFromWO(p, u); } }
   };
 }

@@ -154,9 +154,9 @@ const SCHEMA = {
   },
   APPROVALS: {
     pk: 'ApprovalID', prefix: 'APR', tab: '#64748b',
-    desc: 'Riwayat approval & tanda tangan digital sederhana (Phase 7).',
+    desc: 'Riwayat approval (Phase 7). RefType: PM/WO/RISK/CM/WO_CLOSE. SignatureHash = SHA-256(ref|keputusan|email|waktu|garam) untuk mendeteksi perubahan manual.',
     fk: 'RefType + RefID -> tabel terkait',
-    cols: ['RefType', 'RefID', 'ApprovalLevel:n', 'ApproverRole', 'ApprovedBy', 'ApprovalDate:dt', 'Decision', 'Remarks', 'SignatureHash']
+    cols: ['RefType', 'RefID', 'ApprovalLevel:n', 'ApproverRole', 'ApprovedBy', 'ApprovalDate:dt', 'Decision', 'Remarks', 'SignatureHash', 'ApproverEmail']
   },
   ATTACHMENTS: {
     pk: 'AttachmentID', prefix: 'ATT', tab: '#64748b',
@@ -166,7 +166,7 @@ const SCHEMA = {
   },
   NOTIFICATIONS: {
     pk: 'NotificationID', prefix: 'NTF', tab: '#64748b',
-    desc: 'Log notifikasi email (Phase 7).',
+    desc: 'Log notifikasi email. NotificationType: CRITICAL_FINDING/SAFETY_FINDING/LOW_STOCK/DAILY_DIGEST/TECH_REMINDER/ASSIGNMENT dst.',
     fk: 'RefType + RefID -> tabel terkait',
     cols: ['NotificationType', 'RecipientEmail', 'Subject', 'RefType', 'RefID', 'SentAt:dt', 'DeliveryStatus', 'ErrorMessage']
   },

@@ -224,6 +224,7 @@ const CM = {
         }
       }
       Audit.log(user, 'CM_CLOSE', 'CORRECTIVE_MAINTENANCE', c.ComplaintNo, { result: c.RepairResult, selfClosed: Auth.norm(c.CompletedBy) === Auth.norm(user.email) }, 'OK');
+      Approvals.record('CM', c.ComplaintNo, 2, 'Verified', user, '');
       return { ComplaintNo: c.ComplaintNo, Status: 'Closed', EquipmentStatus: eqStatus };
     });
   },

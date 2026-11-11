@@ -210,6 +210,7 @@ const WO = {
       if (decision === 'Approved' && assignee) upd.AssignedTo = assignee;
       Db.update('WORK_ORDERS', cur.WorkOrderID, upd, user.email, { expectedUpdatedAt: p.UpdatedAt });
       Audit.log(user, decision === 'Approved' ? 'WO_APPROVE' : 'WO_REJECT', 'WORK_ORDERS', cur.WorkOrderID, { remarks: remarks, assignee: assignee, selfApproved: self }, 'OK');
+      Approvals.record('WO', cur.WorkOrderID, 1, decision, user, remarks);
       return Db.get('WORK_ORDERS', cur.WorkOrderID);
     });
     if (decision === 'Approved' && assignee) Notify.assigned('WO_ASSIGNED', assignee, w.WorkOrderID + ' - ' + w.Title, w.Description, 'WORK_ORDER', w.WorkOrderID);
@@ -284,6 +285,7 @@ const WO = {
       if (self && user.role !== 'Admin') throw new AppError('FORBIDDEN', 'Self verify', { rule: 'selfApprove' });
       Db.update('WORK_ORDERS', w.WorkOrderID, { Status: 'Closed', VerifiedBy: user.name, ClosedAt: Db.now() }, user.email);
       Audit.log(user, 'WO_CLOSE', 'WORK_ORDERS', w.WorkOrderID, { selfClosed: self }, 'OK');
+      Approvals.record('WO_CLOSE', w.WorkOrderID, 2, 'Verified', user, '');
       return { WorkOrderID: w.WorkOrderID, Status: 'Closed' };
     });
   },

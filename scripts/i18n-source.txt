@@ -641,3 +641,34 @@ dash.lowStock|Stok menipis|Low stock|库存不足
 rule.insufficient|Stok tidak mencukupi|Insufficient stock|库存不足
 rule.stockNotZero|Stok harus 0 sebelum dihapus|Stock must be 0 before deleting|删除前库存须为 0
 rule.returnExceeds|Pengembalian melebihi jumlah yang dipakai WO|Return exceeds the quantity used on this WO|退回数量超过工单已用数量
+settings.automation|Otomasi|Automation|自动化
+settings.approvals|Riwayat approval|Approval history|审批记录
+auto.title|Job harian otomatis|Automatic daily job|每日自动任务
+auto.desc|Mengirim ringkasan harian ke Supervisor/Manager/Admin dan pengingat tugas ke teknisi, satu email per orang per hari, hanya bila ada isi.|Sends a daily digest to Supervisors/Managers/Admins and task reminders to technicians, one email per person per day, only when there is something to report.|向主管/经理/管理员发送每日摘要，向技术员发送任务提醒；每人每天一封，无内容则不发。
+auto.status|Status|Status|状态
+auto.on|Aktif|Enabled|已启用
+auto.off|Nonaktif|Disabled|已停用
+auto.noTrigger|Aktif tetapi trigger belum terpasang|Enabled but trigger not installed|已启用但未安装触发器
+auto.lastRun|Eksekusi terakhir|Last run|上次运行
+auto.never|Belum pernah berjalan|Never run|尚未运行
+auto.lastSummary|Terkirim {sent}, gagal {failed}, dilewati {skipped}|Sent {sent}, failed {failed}, skipped {skipped}|已发送 {sent}，失败 {failed}，跳过 {skipped}
+auto.quotaStop|berhenti: kuota email habis|stopped: mail quota reached|已停止：邮件额度用尽
+auto.help|Menyimpan dengan status Aktif memasang trigger harian (izin "trigger" akan diminta saat otorisasi). Jam memakai zona waktu script.|Saving as Enabled installs the daily trigger (the "triggers" permission is requested on authorization). The hour uses the script time zone.|以“启用”保存将安装每日触发器。小时按脚本时区计算。
+auto.preview|Pratinjau (tanpa kirim)|Preview (no send)|预览（不发送）
+auto.previewResult|Akan mengirim {n} email, {e} penerima tanpa isi.|Would send {n} emails, {e} recipients with nothing to report.|将发送 {n} 封邮件，{e} 位收件人无内容。
+auto.runNow|Jalankan sekarang|Run now|立即运行
+auto.runConfirm|Email akan dikirim sekarang walaupun hari ini sudah pernah dikirim. Lanjutkan?|Emails will be sent now even if already sent today. Continue?|即使今天已发送过，也将立即发送。继续？
+auto.notifLog|Log notifikasi terbaru|Recent notification log|最近通知记录
+auto.to|Penerima|Recipient|收件人
+f.AUTOMATION_ENABLED|Job harian|Daily job|每日任务
+f.AUTOMATION_HOUR|Jam eksekusi (0-23)|Run hour (0-23)|运行时间（0-23）
+f.OVERDUE_DAYS|CM/WO terlambat setelah (hari)|CM/WO overdue after (days)|CM/工单超期天数
+f.SAFETY_ESCALATE_DAYS|Eskalasi K3 setelah (hari)|Escalate safety after (days)|安全隐患升级天数
+appr.tampered|PERINGATAN: {n} catatan approval tidak cocok dengan tanda tangannya (kemungkinan diedit manual):|WARNING: {n} approval records do not match their signature (possibly edited manually):|警告：{n} 条审批记录与签名不符（可能被手动修改）：
+appr.allValid|Semua {n} catatan approval cocok dengan tanda tangannya.|All {n} approval records match their signatures.|全部 {n} 条审批记录签名一致。
+appr.ref|Dokumen|Record|单据
+appr.decision|Keputusan|Decision|决定
+appr.by|Oleh|By|审批人
+appr.sig|Tanda tangan|Signature|签名
+appr.valid|valid|valid|有效
+appr.invalid|TIDAK VALID|INVALID|无效

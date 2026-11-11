@@ -91,6 +91,7 @@ const Risk = {
       } else {
         Db.update('RISK_ASSESSMENTS', r.RiskID, { ApprovedBy: user.name, ApprovedAt: Db.now(), ApprovalRemarks: remarks }, user.email);
       }
+      Approvals.record('RISK', r.RiskID, 1, decision, user, remarks);
       Audit.log(user, decision === 'Approved' ? 'RISK_APPROVE' : 'RISK_REJECT', 'RISK_ASSESSMENTS', r.RiskID, { remarks: remarks, selfApproved: self }, 'OK');
       return { RiskID: r.RiskID, decision: decision };
     });

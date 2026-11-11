@@ -711,3 +711,47 @@ function runSelfTestPhase6() {
   Logger.log(out);
   return out;
 }
+
+/**
+ * Uji mandiri Phase 7 (otomasi & approval) di spreadsheet nyata. Jalankan dari editor Apps Script.
+ * Tidak mengirim email (dryRun) dan tidak mengubah pengaturan otomasi Anda; trigger uji dihapus kembali.
+ */
+function runSelfTestPhase7() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const eq = function (a, b, m) { if (a !== b) throw new Error((m || 'nilai') + ': diharapkan ' + b + ', dapat ' + a); };
+  const A = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+
+  t('Kolom APPROVALS.ApproverEmail ada (jalankan setupEMMS() bila gagal)', function () {
+    if (Db.headers('APPROVALS').indexOf('ApproverEmail') === -1) throw new Error('kolom ApproverEmail belum ada');
+  });
+  t('Izin trigger tersedia & trigger dapat dipasang lalu dihapus', function () {
+    const before = Automation.triggers_().length;
+    const trg = ScriptApp.newTrigger('emmsDailyJob').timeBased().everyDays(1).atHour(3).create();
+    eq(Automation.triggers_().length, before + 1, 'jumlah trigger');
+    ScriptApp.deleteTrigger(trg);
+    eq(Automation.triggers_().length, before, 'jumlah trigger setelah hapus');
+  });
+  t('Dry run job harian berjalan tanpa error dan tanpa email', function () {
+    const r = Automation.run({ dryRun: true }, A);
+    eq(r.errors.length, 0, 'error'); eq(r.dryRun, true);
+    if (r.counts === undefined) throw new Error('tidak ada hitungan');
+  });
+  t('Tanda tangan approval: rekam, valid, lalu dihapus', function () {
+    Approvals.record('SELFTEST', 'ZZ-1', 1, 'Approved', A, 'uji');
+    const row = Db.where('APPROVALS', function (a) { return a.RefType === 'SELFTEST'; })[0];
+    if (!row) throw new Error('tidak terekam');
+    eq(Approvals.valid_(row), true, 'valid');
+    Db.update('APPROVALS', row.ApprovalID, { Decision: 'Rejected' }, 'x');
+    eq(Approvals.valid_(Db.get('APPROVALS', row.ApprovalID)), false, 'terdeteksi perubahan');
+    Db.hardDelete('APPROVALS', row.ApprovalID);
+  });
+  t('Kuota email terbaca', function () { if (typeof MailApp.getRemainingDailyQuota() !== 'number') throw new Error('kuota tidak terbaca'); });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
+}

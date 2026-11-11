@@ -7,7 +7,7 @@
 
 const CFG = {
   APP_NAME: 'EMMS',
-  VERSION: '1.5.0-phase6',
+  VERSION: '1.6.0-phase7',
 
   // Kunci Script Properties
   SS_ID_PROP: 'EMMS_SS_ID',
@@ -72,7 +72,10 @@ const CFG = {
     'inventory.view':   ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician', 'Viewer'],
     'inventory.use':    ['Admin', 'Maintenance Manager', 'Supervisor', 'Technician'],
     'inventory.stock':  ['Admin', 'Maintenance Manager', 'Supervisor'],
-    'inventory.manage': ['Admin', 'Maintenance Manager']
+    'inventory.manage': ['Admin', 'Maintenance Manager'],
+    'approvals.view':   ['Admin', 'Maintenance Manager', 'Supervisor'],
+    'automation.view':  ['Admin', 'Maintenance Manager'],
+    'automation.manage': ['Admin']
   },
 
   // Kebijakan Phase 2

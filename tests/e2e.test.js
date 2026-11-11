@@ -127,11 +127,11 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     assert.ok((await page.textContent('#ptitle')).includes('设备'));
     await page.selectOption('#langsel', 'id');
   });
-  await t('halaman Pengguna & Pengaturan (4 tab untuk Admin)', async () => {
+  await t('halaman Pengguna & Pengaturan (6 tab untuk Admin)', async () => {
     await page.click('[data-nav=users]'); await page.waitForSelector('table tbody tr');
     assert.ok((await page.textContent('table')).includes('owner@gmail.com'));
     await page.click('[data-nav=settings]'); await page.waitForSelector('.tabs button');
-    assert.strictEqual((await page.$$('.tabs button')).length, 4);
+    assert.strictEqual((await page.$$('.tabs button')).length, 6);
     await page.click('.tabs button[data-t=master]'); await page.waitForSelector('#stab table');
     await page.click('.tabs button[data-t=audit]'); await page.waitForSelector('#stab table tbody tr');
     await page.click('.tabs button[data-t=system]'); await page.waitForSelector('#stab .dl');
@@ -386,6 +386,16 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.click('[data-nav=dashboard]'); await page.waitForSelector('.cards');
     assert.ok((await page.textContent('.content')).includes('Stok menipis'));
+  });
+  await t('Pengaturan > Otomasi: aktifkan job, pratinjau; Riwayat approval tampil', async () => {
+    await page.click('[data-nav=settings]'); await page.waitForSelector('.tabs button[data-t=automation]');
+    await page.click('.tabs button[data-t=automation]'); await page.waitForSelector('#afrm [name=AUTOMATION_HOUR]');
+    await page.selectOption('#afrm [name=AUTOMATION_ENABLED]', 'TRUE'); await page.fill('#afrm [name=AUTOMATION_HOUR]', '5');
+    await page.locator('#abtn .btn.primary').click(); await page.waitForTimeout(800);
+    assert.strictEqual(ctx.__state.triggers.length, 1); assert.strictEqual(ctx.__state.triggers[0].hour, 5);
+    await page.waitForSelector('#afrm [name=AUTOMATION_HOUR]'); await page.locator('#abtn .btn', { hasText: 'Pratinjau' }).click(); await page.waitForTimeout(600);
+    await page.click('.tabs button[data-t=approvals]'); await page.waitForSelector('#stab .card');
+    assert.ok((await page.textContent('#stab')).includes('Tanda tangan'));
   });
   await t('tampilan HP (375px): menu geser & tanpa scroll horizontal halaman', async () => {
     await page.setViewportSize({ width: 375, height: 760 });

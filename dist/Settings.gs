@@ -12,10 +12,21 @@ const Settings = {
     { key: 'SESSION_DAYS', value: '30', desc: 'Masa berlaku sesi login (hari)', cat: 'Security', pub: false },
     { key: 'PM_LEAD_DAYS', value: '7', desc: 'PM dianggap "segera jatuh tempo" N hari sebelum tanggalnya', cat: 'PM', pub: true },
     { key: 'PM_CALENDAR_ENABLED', value: 'TRUE', desc: 'Buat pengingat PM di Google Calendar milik pemilik script', cat: 'PM', pub: false },
+    { key: 'AUTOMATION_ENABLED', value: 'FALSE', desc: 'Aktifkan job harian (email pengingat & ringkasan)', cat: 'Automation', pub: false },
+    { key: 'AUTOMATION_HOUR', value: '6', desc: 'Jam job harian (0-23, zona waktu script)', cat: 'Automation', pub: false },
+    { key: 'OVERDUE_DAYS', value: '7', desc: 'CM/WO dianggap terlambat setelah N hari', cat: 'Automation', pub: false },
+    { key: 'SAFETY_ESCALATE_DAYS', value: '3', desc: 'Temuan K3 High/Critical dieskalasi setelah N hari', cat: 'Automation', pub: false },
+    { key: 'AUTOMATION_LAST_RUN', value: '', desc: 'Ringkasan eksekusi job terakhir (diisi sistem)', cat: 'System', pub: false },
     { key: 'SCHEMA_VERSION', value: '1', desc: 'Versi skema database', cat: 'System', pub: false }
   ],
 
-  EDITABLE: ['COMPANY_NAME', 'COMPANY_ADDRESS', 'DEFAULT_LANGUAGE', 'WEBAPP_URL', 'ALLOW_GOOGLE_AUTOLOGIN', 'SESSION_DAYS', 'PM_LEAD_DAYS', 'PM_CALENDAR_ENABLED'],
+  EDITABLE: ['COMPANY_NAME', 'COMPANY_ADDRESS', 'DEFAULT_LANGUAGE', 'WEBAPP_URL', 'ALLOW_GOOGLE_AUTOLOGIN', 'SESSION_DAYS', 'PM_LEAD_DAYS', 'PM_CALENDAR_ENABLED', 'AUTOMATION_ENABLED', 'AUTOMATION_HOUR', 'OVERDUE_DAYS', 'SAFETY_ESCALATE_DAYS'],
+
+  /** Tulis kunci sistem (tidak ada di whitelist EDITABLE). Hanya untuk kode server. */
+  setSystem_: function (key, value) {
+    if (Db.get('SETTINGS', key)) Db.update('SETTINGS', key, { SettingValue: value }, 'system');
+    else Db.insert('SETTINGS', { SettingKey: key, SettingValue: value, Description: '', Category: 'System' }, 'system');
+  },
 
   get: function (key, fallback) {
     const r = Db.get('SETTINGS', key);
@@ -71,6 +82,10 @@ const Settings = {
       if (k === 'SESSION_DAYS') { const n = Number(v); if (!(n >= 1 && n <= 90)) errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'PM_LEAD_DAYS') { const n = Number(v); if (!(v !== '' && n >= 0 && n <= 60 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'PM_CALENDAR_ENABLED') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'AUTOMATION_ENABLED') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'AUTOMATION_HOUR') { const n = Number(v); if (!(v !== '' && n >= 0 && n <= 23 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'OVERDUE_DAYS') { const n = Number(v); if (!(v !== '' && n >= 1 && n <= 90 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'SAFETY_ESCALATE_DAYS') { const n = Number(v); if (!(v !== '' && n >= 1 && n <= 60 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
       clean[k] = v;
     });
     if (errors.length) throw validationError_(errors);

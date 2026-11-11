@@ -80,7 +80,7 @@ function tzParts(date, tz) {
 
 function build(opts) {
   opts = opts || {};
-  const state = { props: {}, cache: {}, mails: [], events: [], evSeq: 0, spreadsheets: {}, folders: {}, files: {}, activeUser: opts.activeUser || '', effectiveUser: 'owner@gmail.com' };
+  const state = { props: {}, cache: {}, mails: [], triggers: [], events: [], evSeq: 0, spreadsheets: {}, folders: {}, files: {}, activeUser: opts.activeUser || '', effectiveUser: 'owner@gmail.com' };
   const ctx = {
     console, Date, Math, JSON, Object, Array, String, Number, Error, RegExp, isNaN, parseInt, encodeURIComponent,
     Logger: { log: (m) => { state.log = (state.log || []).concat(String(m)); } },
@@ -127,7 +127,12 @@ function build(opts) {
         }
       })
     },
-    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/AKfycbTEST123/exec' }) },
+    ScriptApp: {
+      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/AKfycbTEST123/exec' }),
+      getProjectTriggers: () => state.triggers.slice(),
+      deleteTrigger: t => { state.triggers = state.triggers.filter(x => x !== t); },
+      newTrigger: fn => { const t = { fn, hour: null, getHandlerFunction: () => fn }; const b = { timeBased: () => b, everyDays: () => b, atHour: h => { t.hour = h; return b; }, inTimezone: () => b, create: () => { state.triggers.push(t); return t; } }; return b; }
+    },
     DriveApp: {
       getFoldersByName: n => { const f = state.folders[n]; let used = false; return { hasNext: () => !!f && !used, next: () => { used = true; return f; } }; },
       createFolder: n => { const f = mkFolder(n); state.folders[n] = f; return f; },
@@ -154,7 +159,7 @@ function build(opts) {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
   const code = files.map(f => '// ==== ' + f + '\n' + fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
   // Ekspos deklarasi top-level (const/class tidak otomatis jadi properti global)
-  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,CM,WO,EqStatus,Work,Safety,Risk,Loto,Inventory,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
+  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,CM,WO,EqStatus,Work,Safety,Risk,Loto,Inventory,Approvals,Automation,emmsDailyJob,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
   vm.runInContext(code + expose, ctx, { filename: 'emms-all.gs' });
   return ctx;
 }
