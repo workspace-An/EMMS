@@ -169,6 +169,12 @@ function getRoutes_() {
     'approvals.list': { perm: 'approvals.view', fn: function (p) { return Approvals.list(p); } },
     'approvals.verify': { perm: 'automation.view', fn: function () { return Approvals.verify(); } },
 
+    'reports.run': { perm: 'reports.view', fn: function (p) { return Reports.run(p); } },
+    'system.health': { perm: 'automation.view', fn: function () { return SystemCheck.health(); } },
+    'backup.list': { perm: 'automation.view', fn: function () { return Backup.list(); } },
+    'backup.create': { perm: 'system.manage', fn: function (p, u) { return Backup.create(u, 'manual'); } },
+    'backup.configure': { perm: 'system.manage', fn: function (p, u) { return Settings.update({ BACKUP_AUTO: String(p && p.BACKUP_AUTO).toUpperCase(), BACKUP_KEEP: String(p && p.BACKUP_KEEP) }, u); } },
+
     'inventory.returnFromWO': { perm: 'inventory.use', fn: function (p, u) { return Inventory.returnFromWO(p, u); } }
   };
 }

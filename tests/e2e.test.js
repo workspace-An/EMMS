@@ -397,6 +397,19 @@ async function t(name, fn) { try { await fn(); pass++; console.log('  ok   ' + n
     await page.click('.tabs button[data-t=approvals]'); await page.waitForSelector('#stab .card');
     assert.ok((await page.textContent('#stab')).includes('Tanda tangan'));
   });
+  await t('Laporan: ringkasan, ganti jenis, ekspor CSV; Sistem: health check & backup', async () => {
+    await page.click('[data-nav=reports]'); await page.waitForSelector('#rbody .kpi');
+    assert.ok((await page.textContent('#rbody')).includes('Indikator utama'));
+    await page.selectOption('#rtype', 'cm'); await page.waitForSelector('#rbody .rep-head');
+    await page.waitForFunction(() => document.querySelector('#rbody .rep-head').textContent.includes('Corrective'));
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#rtools .btn', { hasText: 'CSV' }).click()]);
+    assert.ok(/^EMMS_cm_/.test(dl.suggestedFilename()));
+    await page.selectOption('#rtype', 'equipment'); await page.waitForFunction(() => document.querySelector('#rfrom').disabled === true);
+    await page.click('[data-nav=settings]'); await page.waitForSelector('.tabs button[data-t=system]'); await page.click('.tabs button[data-t=system]');
+    await page.waitForSelector('#shealth table'); assert.ok((await page.textContent('#shealth')).includes('Skema database'));
+    await page.waitForSelector('#bbtn .btn'); await page.locator('#bbtn .btn', { hasText: 'Backup sekarang' }).click(); await page.waitForTimeout(900);
+    assert.strictEqual(ctx.Backup.list_().length, 1);
+  });
   await t('tampilan HP (375px): menu geser & tanpa scroll horizontal halaman', async () => {
     await page.setViewportSize({ width: 375, height: 760 });
     await page.click('[data-nav=dashboard]', { force: true }).catch(() => {});

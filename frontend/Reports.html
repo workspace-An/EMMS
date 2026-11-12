@@ -1,0 +1,83 @@
+<script>
+/* EMMS - Reports.html : Laporan (Phase 8). Semua angka dihitung server; di sini hanya tampil, ekspor CSV, dan cetak. */
+(function () {
+  'use strict';
+  var E = window.EMMS, esc = E.esc, t = E.t, $ = E.$, $$ = E.$$;
+  var TYPES = ['summary', 'inspection', 'pm', 'cm', 'wo', 'safety', 'inventory', 'equipment'];
+  var NO_RANGE = { equipment: true };
+  var F = { type: 'summary', from: '', to: '' };
+  var last = null;
+
+  function lab(prefix, key) { var k = prefix + key, r = t(k); return r === k ? key : r; }
+  function kpiLabel(key) { var p = key.split('.'); return p.length > 1 ? t('rep.type.' + p[0]) + ': ' + lab('rep.k.', p[1]) : lab('rep.k.', key); }
+  function fmtVal(v, unit) { return (typeof v === 'number' ? String(v).replace('.', ',') : esc(v)) + (unit ? ' ' + esc(unit === 'h' ? t('rep.hours') : (unit === 'd' ? t('rep.days') : unit)) : ''); }
+  function cell(colKey, v) {
+    if (v === '' || v === null || v === undefined) return '';
+    if (typeof v === 'number') return String(v).replace('.', ',');
+    if (colKey === 'status' || colKey === 'result') return esc(E.tv(colKey === 'status' ? 'status' : 'result', v));
+    if (colKey === 'indicator') return esc(kpiLabel(String(v)));
+    return esc(v);
+  }
+  function csvCell(v) { var s = String(v === null || v === undefined ? '' : v); return /[",;\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function csvOf(rep) {
+    var out = [[t('rep.type.' + rep.type), rep.from + ' - ' + rep.to].map(csvCell).join(';'), ''];
+    out.push([t('rep.kpi')].map(csvCell).join(';'));
+    rep.kpis.forEach(function (k) { out.push([kpiLabel(k.key), k.value + (k.unit ? ' ' + k.unit : '')].map(csvCell).join(';')); });
+    rep.tables.forEach(function (tb) {
+      out.push(''); out.push(csvCell(lab('rep.t.', tb.key)));
+      out.push(tb.columns.map(function (c) { return csvCell(lab('rep.c.', c)); }).join(';'));
+      tb.rows.forEach(function (r) { out.push(r.map(function (v, i) { return csvCell(tb.columns[i] === 'indicator' ? kpiLabel(String(v)) : v); }).join(';')); });
+    });
+    return '﻿' + out.join('\r\n');
+  }
+  function download(name, text) {
+    try {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    } catch (e) { E.toast(t('rep.csvFail'), 'err'); }
+  }
+
+  function draw(box, rep) {
+    var html = '<div class="rep-head"><b>' + esc(t('rep.type.' + rep.type)) + '</b> <span class="sub">' + esc(NO_RANGE[rep.type] ? t('rep.snapshot') : rep.from + ' → ' + rep.to) + ' · ' + esc(t('rep.generated', { at: E.fmtDT(rep.generatedAt) })) + '</span></div>' +
+      '<div class="cards">' + rep.kpis.map(function (k) { return '<div class="card kpi"><div class="kpi-n">' + fmtVal(k.value, k.unit) + '</div><div class="sub">' + esc(kpiLabel(k.key)) + '</div></div>'; }).join('') + '</div>';
+    rep.tables.forEach(function (tb) {
+      html += '<div class="card" style="margin-top:12px"><div class="card-b"><h3>' + esc(lab('rep.t.', tb.key)) + '</h3><div class="table-wrap"><table><thead><tr>' + tb.columns.map(function (c) { return '<th>' + esc(lab('rep.c.', c)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        (tb.rows.length ? tb.rows.map(function (r) { return '<tr>' + r.map(function (v, i) { return '<td>' + cell(tb.columns[i], v) + '</td>'; }).join('') + '</tr>'; }).join('') : '<tr><td colspan="' + tb.columns.length + '" class="empty">' + esc(t('common.noData')) + '</td></tr>') + '</tbody></table></div></div></div>';
+    });
+    box.innerHTML = html;
+  }
+
+  E.pages.reports = {
+    render: function (el) {
+      var today = new Date(), iso = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+      if (!F.to) { F.to = iso(today); var f = new Date(today.getTime() - 29 * 86400000); F.from = iso(f); }
+      el.innerHTML = '<div class="page-head"><h1>' + esc(t('nav.reports')) + '</h1><span id="rtools" class="no-print"></span></div>' +
+        '<div class="toolbar no-print" id="rbar"><select id="rtype" class="mini">' + TYPES.map(function (k) { return '<option value="' + k + '"' + (F.type === k ? ' selected' : '') + '>' + esc(t('rep.type.' + k)) + '</option>'; }).join('') + '</select>' +
+        '<label class="sub">' + esc(t('rep.from')) + ' <input type="date" id="rfrom" value="' + esc(F.from) + '"></label><label class="sub">' + esc(t('rep.to')) + ' <input type="date" id="rto" value="' + esc(F.to) + '"></label>' +
+        '<span id="rpresets"></span></div><div id="rbody"></div>';
+      var tools = $('#rtools', el);
+      tools.appendChild(E.btn('CSV', '', function () { if (last) download('EMMS_' + last.type + '_' + (last.from || '') + '_' + (last.to || '') + '.csv', csvOf(last)); }, 'download'));
+      tools.appendChild(document.createTextNode(' '));
+      tools.appendChild(E.btn(t('rep.print'), '', function () {
+        document.body.classList.add('rep-print'); setTimeout(function () { try { window.print(); } finally { setTimeout(function () { document.body.classList.remove('rep-print'); }, 500); } }, 50);
+      }, 'file'));
+      var pre = $('#rpresets', el);
+      [[7, 'rep.d7'], [30, 'rep.d30'], [90, 'rep.d90']].forEach(function (p) {
+        pre.appendChild(E.btn(t(p[1]), '', function () { var d = new Date(); F.to = iso(d); F.from = iso(new Date(d.getTime() - (p[0] - 1) * 86400000)); $('#rfrom', el).value = F.from; $('#rto', el).value = F.to; load(); }));
+        pre.appendChild(document.createTextNode(' '));
+      });
+      function load() {
+        $('#rfrom', el).disabled = $('#rto', el).disabled = !!NO_RANGE[F.type];
+        var box = $('#rbody', el); box.innerHTML = '<div class="empty">' + esc(t('common.loading')) + '</div>';
+        E.api('reports.run', { type: F.type, from: F.from, to: F.to }).then(function (rep) { last = rep; draw(box, rep); })
+          .catch(function (e) { last = null; box.innerHTML = '<div class="notice">' + esc(E.errText(e)) + '</div>'; });
+      }
+      $('#rtype', el).onchange = function () { F.type = this.value; load(); };
+      $('#rfrom', el).onchange = function () { F.from = this.value; load(); };
+      $('#rto', el).onchange = function () { F.to = this.value; load(); };
+      load();
+    }
+  };
+})();
+</script>

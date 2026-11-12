@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0-phase8 - Laporan, finalisasi, PWA ringan (rilis lengkap Phase 1-8)
+> Catatan: teks spesifikasi asli Phase 8 tidak tersedia; fitur disusun dari rencana fase (Reporting/Finalization/PWA) dan data yang sudah ada. Mohon dicocokkan dengan kebutuhan pabrik.
+- Menu **Laporan** (Admin/Manager/Supervisor/Viewer): Ringkasan eksekutif, Inspeksi, PM, Corrective, Work Order, K3 Listrik, Suku cadang, Kesehatan equipment. Rentang tanggal (maks. 366 hari, preset 7/30/90 hari), semua angka dihitung di server: tingkat OK inspeksi, kepatuhan PM tepat waktu, MTTR, siklus WO, LOTO, pemakaian stok, ketersediaan equipment, dan lain-lain. **Ekspor CSV** (Excel-ready, BOM UTF-8, pemisah `;`) dan **Cetak/PDF** (tata letak cetak khusus).
+- **Backup database** (Pengaturan > Sistem, hanya Admin): salin spreadsheet ke Drive `EMMS_Files/Backups`, retensi N terakhir (default 8), backup otomatis mingguan lewat job harian (opsional). Foto tidak disalin. Gagal salin dilaporkan jelas dan riwayat tidak rusak.
+- **Pemeriksaan kesehatan sistem** (Admin/Manager): skema lengkap, Admin aktif, folder Drive, trigger otomasi, job harian terakhir, umur backup, kuota email, ukuran data.
+- **PWA ringan**: meta tag "tambah ke layar utama" (ikon & mode layar penuh di HP), banner saat offline. Batasan: Apps Script tidak dapat menyajikan service worker/manifest dari domainnya sendiri, jadi **aplikasi tetap butuh internet** dan tidak ada mode offline penuh.
+- Izin baru `reports.view`, `system.manage`; rute `reports.run`, `system.health`, `backup.*`. Pengaturan baru BACKUP_AUTO (FALSE), BACKUP_KEEP (8).
+- Versi aplikasi naik ke **1.0.0**. Skema tidak berubah dari Phase 7; tetap jalankan `setupEMMS()` setelah update.
+- Uji: backend 17 (Phase 8) termasuk uji skala 1.500 inspeksi dan pemeriksaan terjemahan semua kunci laporan; Phase 1-7 tetap lulus; E2E 37; `runSelfTestPhase8()`.
+- Dokumen serah terima: `docs/handover.md` (checklist go-live, peran, pemeliharaan, batasan).
+
 ## 1.6.0-phase7 - Automation & Approval
 > Catatan: teks spesifikasi asli Phase 7 tidak tersedia; fitur disusun dari skema Phase 1 (APPROVALS, NOTIFICATIONS) dan komentar kode Phase 2 ("jadwal PM, overdue, NG, Work Order, stok minimum, trigger terjadwal"). Mohon dicocokkan dengan kebutuhan pabrik.
 - **Job harian otomatis** (trigger waktu `emmsDailyJob`): ringkasan harian ke Supervisor/Manager/Admin (persetujuan tertunda, PM terlambat/segera, CM & WO terlambat/kritis, temuan K3 High/Critical yang lama, stok menipis, equipment belum diinspeksi) dan satu email tugas per teknisi (PM jatuh tempo/terlambat, CM & WO miliknya).

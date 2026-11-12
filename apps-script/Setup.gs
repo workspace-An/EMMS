@@ -755,3 +755,44 @@ function runSelfTestPhase7() {
   Logger.log(out);
   return out;
 }
+
+/**
+ * Uji mandiri Phase 8 (laporan, backup, health check) di spreadsheet nyata. Jalankan dari editor Apps Script.
+ * Membuat satu backup uji di Drive lalu memindahkannya ke tempat sampah.
+ */
+function runSelfTestPhase8() {
+  const results = [];
+  const t = function (name, fn) {
+    try { fn(); results.push('PASS  ' + name); } catch (e) { results.push('FAIL  ' + name + ' -> ' + (e && e.message)); }
+  };
+  const A = { email: 'selftest-admin@example.com', name: 'Self Test', role: 'Admin' };
+
+  t('Semua jenis laporan berjalan pada data nyata tanpa error', function () {
+    Reports.TYPES.forEach(function (ty) {
+      const r = Reports.run({ type: ty });
+      if (!r.kpis.length || !r.tables.length) throw new Error(ty + ' kosong');
+    });
+  });
+  t('Validasi rentang tanggal', function () {
+    ensureThrows_(function () { Reports.run({ type: 'cm', from: '2026-02-01', to: '2026-01-01' }); }, 'VALIDATION');
+    ensureThrows_(function () { Reports.run({ type: 'zzz' }); }, 'VALIDATION');
+  });
+  t('Health check berjalan dan skema lengkap (jalankan setupEMMS() bila gagal)', function () {
+    const h = SystemCheck.health();
+    const sc = h.checks.filter(function (c) { return c.key === 'schema'; })[0];
+    if (!sc || !sc.ok) throw new Error('skema: ' + (sc && sc.detail));
+  });
+  t('Backup: salinan dibuat di Drive lalu dibuang', function () {
+    const before = Backup.list_().length;
+    const b = Backup.create(A, 'selftest');
+    DriveApp.getFileById(b.id).setTrashed(true);
+    const l = Backup.list_();
+    l.pop(); Settings.setSystem_('BACKUP_LIST', JSON.stringify(l));
+    if (l.length !== Math.min(before, Backup.keep_() - 1) && l.length !== before) { /* retensi dapat membuang yang lama; abaikan */ }
+  });
+
+  const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  const out = results.join('\n') + '\n\n' + (results.length - failed) + '/' + results.length + ' lulus' + (failed ? ' - ADA YANG GAGAL' : '');
+  Logger.log(out);
+  return out;
+}

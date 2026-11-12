@@ -199,7 +199,7 @@ const Automation = {
         if (res.sent + res.failed >= quota) { res.quotaStop = true; res.failed++; return; }
         if (Notify.sendLogged_(m.type, m.to, m.subject, m.html, 'DATE', d.today)) res.sent++; else res.failed++;
       });
-      if (!opts.dryRun) res.purged = Automation.purgeSessions_();
+      if (!opts.dryRun) { res.purged = Automation.purgeSessions_(); const bk = Backup.auto_(); if (bk) { res.backup = bk.error ? 'ERROR: ' + bk.error : bk.name; if (bk.error) res.errors.push('backup: ' + bk.error); } }
     } catch (e) { res.errors.push(String(e && e.message || e).slice(0, 200)); console.error('Automation.run: ' + e.message); }
     res.finishedAt = Db.now();
     if (!opts.dryRun) {

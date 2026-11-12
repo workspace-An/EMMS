@@ -3,7 +3,7 @@
 ## Otomatis
 | Perintah | Isi | Lingkungan |
 |---|---|---|
-| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 + 16 Phase 6 + 18 Phase 7 | Node + **mock** layanan Google |
+| `npm test` | pemeriksa frontend (sintaks + kunci i18n 3 bahasa) + 85 uji backend Phase 1 + 28 Phase 2 + 23 Phase 3 + 30 Phase 4 + 21 Phase 5 + 16 Phase 6 + 18 Phase 7 + 17 Phase 8 | Node + **mock** layanan Google |
 | `npm run test:e2e` | 34 skenario di Chromium (login OTP, dashboard, equipment, QR, form, bahasa, HP 375px, inspeksi OK/NG, review, checklist, jadwal & pelaksanaan & approval PM, laporan kerusakan, siklus CM, siklus Work Order) | Playwright + mock |
 | `node tests/qr-verify.mjs` | QR dibaca decoder OpenCV (14 kasus) | Python + OpenCV |
 | `runSelfTest()` di Apps Script | 17 uji pada **Sheet sungguhan** | Google |
@@ -104,3 +104,17 @@ Jalankan `setupEMMS()` lalu `runSelfTestPhase7()` (semua PASS). Lalu di aplikasi
 | 6 | Setujui sebuah WO sebagai Manager | Riwayat approval menampilkan baris valid |
 | 7 | Edit kolom Decision di sheet APPROVALS secara manual | Riwayat approval menampilkan peringatan "tidak valid" |
 | 8 | Nonaktifkan | Trigger terhapus |
+
+## Uji manual Phase 8 (di Google, wajib)
+Jalankan `setupEMMS()` lalu `runSelfTestPhase8()` (semua PASS). Lalu di aplikasi:
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---------|-----------------------|
+| 1 | Laporan > Ringkasan eksekutif | Kartu indikator & tabel; angka cocok dengan dashboard |
+| 2 | Pilih Corrective, rentang 30 hari | MTTR, jumlah terbuka, equipment paling sering rusak |
+| 3 | Klik CSV, buka di Excel | Kolom rapi, huruf Mandarin/aksen tidak rusak |
+| 4 | Klik Cetak / PDF, simpan sebagai PDF | Hanya laporan tercetak (tanpa menu/tombol) |
+| 5 | Pengaturan > Sistem: Pemeriksaan kesehatan | Semua centang hijau (atau peringatan yang jelas) |
+| 6 | Backup sekarang | Folder Drive EMMS_Files/Backups berisi salinan spreadsheet; muncul di daftar |
+| 7 | Putuskan internet di HP | Muncul banner merah "Tidak ada koneksi internet" |
+| 8 | Buka dari HP > menu browser > Tambahkan ke layar utama | Ikon EMMS di layar utama (tetap butuh internet) |

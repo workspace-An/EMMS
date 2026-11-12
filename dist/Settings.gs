@@ -16,11 +16,14 @@ const Settings = {
     { key: 'AUTOMATION_HOUR', value: '6', desc: 'Jam job harian (0-23, zona waktu script)', cat: 'Automation', pub: false },
     { key: 'OVERDUE_DAYS', value: '7', desc: 'CM/WO dianggap terlambat setelah N hari', cat: 'Automation', pub: false },
     { key: 'SAFETY_ESCALATE_DAYS', value: '3', desc: 'Temuan K3 High/Critical dieskalasi setelah N hari', cat: 'Automation', pub: false },
+    { key: 'BACKUP_AUTO', value: 'FALSE', desc: 'Backup otomatis mingguan via job harian', cat: 'Backup', pub: false },
+    { key: 'BACKUP_KEEP', value: '8', desc: 'Jumlah backup yang disimpan', cat: 'Backup', pub: false },
+    { key: 'BACKUP_LIST', value: '', desc: 'Daftar backup (diisi sistem)', cat: 'System', pub: false },
     { key: 'AUTOMATION_LAST_RUN', value: '', desc: 'Ringkasan eksekusi job terakhir (diisi sistem)', cat: 'System', pub: false },
     { key: 'SCHEMA_VERSION', value: '1', desc: 'Versi skema database', cat: 'System', pub: false }
   ],
 
-  EDITABLE: ['COMPANY_NAME', 'COMPANY_ADDRESS', 'DEFAULT_LANGUAGE', 'WEBAPP_URL', 'ALLOW_GOOGLE_AUTOLOGIN', 'SESSION_DAYS', 'PM_LEAD_DAYS', 'PM_CALENDAR_ENABLED', 'AUTOMATION_ENABLED', 'AUTOMATION_HOUR', 'OVERDUE_DAYS', 'SAFETY_ESCALATE_DAYS'],
+  EDITABLE: ['COMPANY_NAME', 'COMPANY_ADDRESS', 'DEFAULT_LANGUAGE', 'WEBAPP_URL', 'ALLOW_GOOGLE_AUTOLOGIN', 'SESSION_DAYS', 'PM_LEAD_DAYS', 'PM_CALENDAR_ENABLED', 'AUTOMATION_ENABLED', 'AUTOMATION_HOUR', 'OVERDUE_DAYS', 'SAFETY_ESCALATE_DAYS', 'BACKUP_AUTO', 'BACKUP_KEEP'],
 
   /** Tulis kunci sistem (tidak ada di whitelist EDITABLE). Hanya untuk kode server. */
   setSystem_: function (key, value) {
@@ -84,6 +87,8 @@ const Settings = {
       if (k === 'PM_CALENDAR_ENABLED') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'AUTOMATION_ENABLED') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'AUTOMATION_HOUR') { const n = Number(v); if (!(v !== '' && n >= 0 && n <= 23 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'BACKUP_AUTO') { v = v.toUpperCase(); if (v !== 'TRUE' && v !== 'FALSE') errors.push({ field: k, rule: 'invalid' }); }
+      if (k === 'BACKUP_KEEP') { const n = Number(v); if (!(v !== '' && n >= 1 && n <= 52 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'OVERDUE_DAYS') { const n = Number(v); if (!(v !== '' && n >= 1 && n <= 90 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
       if (k === 'SAFETY_ESCALATE_DAYS') { const n = Number(v); if (!(v !== '' && n >= 1 && n <= 60 && Math.floor(n) === n)) errors.push({ field: k, rule: 'invalid' }); }
       clean[k] = v;

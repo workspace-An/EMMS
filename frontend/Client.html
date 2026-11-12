@@ -69,6 +69,16 @@
     });
   };
 
+  /** Banner offline: Apps Script tidak dapat menyajikan service worker, jadi aplikasi butuh internet; beri tahu pengguna dengan jelas. */
+  (function () {
+    function upd() {
+      var b = document.getElementById('offline-bar');
+      if (navigator.onLine === false) { if (!b) { b = document.createElement('div'); b.id = 'offline-bar'; b.className = 'offline-bar'; b.textContent = t('net.offline'); document.body.appendChild(b); } }
+      else if (b) b.remove();
+    }
+    window.addEventListener('online', upd); window.addEventListener('offline', upd); upd();
+  })();
+
   var errText = E.errText = function (err) {
     var code = (err && err.code) || 'SERVER';
     var d = (err && err.details) || {};
@@ -311,10 +321,10 @@
     { id: 'inspection', icon: 'clipboard' }, { id: 'pm', icon: 'calendar' },
     { id: 'cm', icon: 'wrench' }, { id: 'wo', icon: 'file' },
     { id: 'safety', icon: 'shield' }, { id: 'inventory', icon: 'box' },
-    { id: 'reports', icon: 'chart', phase: 8 }, { sep: true },
+    { id: 'reports', icon: 'chart' }, { sep: true },
     { id: 'users', icon: 'users', perm: 'users.view' }, { id: 'settings', icon: 'gear', perm: 'settings.view' }
   ];
-  E.PHASE_FOR = { reports: 8 };
+  E.PHASE_FOR = {};
 
   function renderShell() {
     var u = S.user;

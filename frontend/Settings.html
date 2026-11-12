@@ -90,12 +90,53 @@
     }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
   }
 
+  function healthCard(box) {
+    function run() {
+      box.innerHTML = '<div class="card"><div class="card-b"><h3>' + esc(t('health.title')) + '</h3><div class="empty">' + esc(t('common.loading')) + '</div></div></div>';
+      E.api('system.health', {}).then(function (h) {
+        var lv = { ok: 'ok', warn: 'warn', bad: 'bad' };
+        box.innerHTML = '<div class="card"><div class="card-b"><h3>' + esc(t('health.title')) + ' ' + E.badge(lv[h.status], t('health.' + h.status)) + '</h3><div class="table-wrap"><table><tbody>' +
+          h.checks.map(function (c) { return '<tr><td style="width:34px">' + E.badge(lv[c.level], c.level === 'ok' ? '✓' : (c.level === 'warn' ? '!' : '✗')) + '</td><td><b>' + esc(t('health.c.' + c.key)) + '</b><div class="sub">' + esc(c.detail) + '</div></td></tr>'; }).join('') +
+          '</tbody></table></div><div id="hbtn" style="margin-top:8px"></div></div></div>';
+        $('#hbtn', box).appendChild(E.btn(t('health.recheck'), '', run, 'check'));
+      }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+    }
+    run();
+  }
+
+  function backupCard(box) {
+    function run() {
+      E.api('backup.list', {}).then(function (b) {
+        var edit = E.can('system.manage');
+        box.innerHTML = '<div class="card"><div class="card-b"><h3>' + esc(t('backup.title')) + '</h3><p class="muted">' + esc(t('backup.desc')) + '</p>' +
+          '<div class="table-wrap"><table><thead><tr><th>' + esc(t('f.Date')) + '</th><th>' + esc(t('backup.name')) + '</th><th>' + esc(t('backup.by')) + '</th></tr></thead><tbody>' +
+          (b.rows.length ? b.rows.map(function (r) { return '<tr><td class="sub" style="white-space:nowrap">' + esc(E.fmtDT(r.at)) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.by) + ' <span class="sub">' + esc(r.reason) + '</span></td></tr>'; }).join('') : '<tr><td colspan="3" class="empty">' + esc(t('backup.none')) + '</td></tr>') + '</tbody></table></div>' +
+          (edit ? '<div class="grid" id="bfrm" style="margin-top:10px">' + E.fieldHtml({ name: 'BACKUP_AUTO', type: 'select', options: [{ v: 'TRUE', l: t('auto.on') }, { v: 'FALSE', l: t('auto.off') }] }, b.auto ? 'TRUE' : 'FALSE') + E.fieldHtml({ name: 'BACKUP_KEEP', max: 2 }, String(b.keep)) + '</div><div id="bbtn" style="margin-top:8px"></div>' : '') + '</div></div>';
+        if (edit) {
+          var bar = $('#bbtn', box);
+          bar.appendChild(E.btn(t('common.save'), 'primary', function () {
+            E.api('backup.configure', E.readForm($('#bfrm', box))).then(function () { E.toast(t('common.saved'), 'ok'); run(); }).catch(function (e) { if (!E.markErrors($('#bfrm', box), e)) E.toast(E.errText(e), 'err'); });
+          }, 'check'));
+          bar.appendChild(document.createTextNode(' '));
+          var go = E.btn(t('backup.now'), '', function () {
+            go.disabled = true;
+            E.api('backup.create', {}).then(function (r) { E.toast(t('backup.done', { name: r.name }), 'ok'); run(); }).catch(function (e) { go.disabled = false; E.toast(E.errText(e), 'err'); });
+          }, 'download');
+          bar.appendChild(go);
+        }
+      }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
+    }
+    run();
+  }
+
   function tabSystem(box) {
     E.api('settings.diagnose', {}).then(function (d) {
       var row = function (k, v) { return '<div><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>'; };
       box.innerHTML = '<div class="card"><div class="card-b"><dl class="dl">' + row('Version', esc((window.__BOOT || {}).version)) +
         row(t('sys.activeEmail'), d.activeUserEmailAvailable ? E.badge('ok', t('common.yes')) : E.badge('gray', t('common.no'))) + row(t('sys.mode'), esc(d.recommendedMode)) +
-        row(t('sys.mailQuota'), esc(d.mailQuotaRemaining)) + row(t('sys.autologin'), esc(d.autoLoginSetting)) + row('Web App URL', esc(S.webAppUrl || '-')) + '</dl><p class="muted">' + esc(t('sys.note')) + '</p></div></div>';
+        row(t('sys.mailQuota'), esc(d.mailQuotaRemaining)) + row(t('sys.autologin'), esc(d.autoLoginSetting)) + row('Web App URL', esc(S.webAppUrl || '-')) + '</dl><p class="muted">' + esc(t('sys.note')) + '</p></div></div>' +
+        '<div id="shealth" style="margin-top:12px"></div><div id="sbackup" style="margin-top:12px"></div>';
+      healthCard($('#shealth', box)); backupCard($('#sbackup', box));
     }).catch(function (x) { box.innerHTML = '<div class="notice">' + esc(E.errText(x)) + '</div>'; });
   }
 

@@ -46,3 +46,9 @@
 - **Job harian**: Pengaturan > Otomasi (Admin). Aktifkan, pilih jam, Simpan. Manajemen menerima ringkasan harian, teknisi menerima daftar tugas; email hanya dikirim bila ada isinya dan maksimal sekali per hari.
 - **Kuota email**: Gmail pribadi sekitar 100 email/hari (dibagi dengan kode OTP login). Job berhenti otomatis bila kuota habis; lihat sisa kuota di tab Otomasi.
 - **Riwayat approval**: Pengaturan > Riwayat approval (Supervisor ke atas). Setiap keputusan punya tanda tangan digital; baris merah "TIDAK VALID" berarti catatan diubah di luar aplikasi.
+
+## Laporan, Backup & Kesehatan sistem (Phase 8)
+- **Laporan**: pilih jenis dan rentang tanggal; **CSV** untuk Excel, **Cetak / PDF** untuk arsip. Laporan Kesehatan equipment adalah kondisi saat ini (tanpa rentang).
+- **Backup**: Pengaturan > Sistem > Backup sekarang (Admin). Aktifkan backup mingguan otomatis bila job harian aktif. Untuk memulihkan: buka salinan di Drive, lalu ikuti bagian "Pemulihan" di `docs/handover.md`.
+- **Kesehatan sistem**: periksa sebelum dan sesudah update; tanda merah berarti perlu tindakan (mis. jalankan `setupEMMS()`).
+- **Layar utama HP**: buka aplikasi di Chrome/Safari > menu > Tambahkan ke layar utama. Aplikasi tetap butuh internet.

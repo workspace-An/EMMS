@@ -672,3 +672,144 @@ appr.by|Oleh|By|审批人
 appr.sig|Tanda tangan|Signature|签名
 appr.valid|valid|valid|有效
 appr.invalid|TIDAK VALID|INVALID|无效
+
+rep.type.summary|Ringkasan eksekutif|Executive summary|管理摘要
+rep.type.inspection|Inspeksi|Inspection|点检
+rep.type.pm|Preventive Maintenance|Preventive Maintenance|预防性维护
+rep.type.cm|Corrective Maintenance|Corrective Maintenance|纠正性维护
+rep.type.wo|Work Order|Work Order|工单
+rep.type.safety|K3 Listrik|Electrical Safety|电气安全
+rep.type.inventory|Suku cadang|Spare parts|备件
+rep.type.equipment|Kesehatan equipment|Equipment health|设备状况
+rep.k.total|Total|Total|总数
+rep.k.equipment|Equipment diinspeksi|Equipment inspected|点检设备数
+rep.k.ng|NG|NG|不合格
+rep.k.critical|Kritis|Critical|严重
+rep.k.okRate|Tingkat OK|OK rate|合格率
+rep.k.done|PM dikerjakan|PM completed|已完成 PM
+rep.k.onTime|Tepat waktu|On time|按时
+rep.k.late|Terlambat|Late|延迟
+rep.k.compliance|Kepatuhan jadwal|Schedule compliance|计划达成率
+rep.k.pendingApproval|Menunggu approval|Pending approval|待批准
+rep.k.rejected|Ditolak/Batal|Rejected/Cancelled|已驳回/取消
+rep.k.overdueNow|PM terlambat saat ini|PM overdue now|当前逾期 PM
+rep.k.open|Masih terbuka|Still open|未关闭
+rep.k.mttrHours|Rata-rata waktu perbaikan (MTTR)|Mean time to repair (MTTR)|平均修复时间 (MTTR)
+rep.k.repeatEquipment|Equipment rusak berulang|Repeat-failure equipment|重复故障设备
+rep.k.closed|Selesai/ditutup|Closed|已关闭
+rep.k.cycleDays|Rata-rata siklus WO|Avg WO cycle time|工单平均周期
+rep.k.closeRate|Tingkat penutupan|Close rate|关闭率
+rep.k.highCritical|High/Critical|High/Critical|高/严重
+rep.k.closeDays|Rata-rata hari penutupan|Avg days to close|平均关闭天数
+rep.k.lotoCount|LOTO dipasang|LOTO applied|LOTO 次数
+rep.k.lotoActive|LOTO aktif|Active LOTO|LOTO 进行中
+rep.k.items|Jumlah item|Items|物料数
+rep.k.lowNow|Stok menipis saat ini|Low stock now|当前库存不足
+rep.k.movements|Jumlah mutasi|Movements|变动次数
+rep.k.qtyIn|Jumlah masuk|Quantity in|入库量
+rep.k.qtyOut|Jumlah keluar|Quantity out|出库量
+rep.k.normal|Normal|Normal|正常
+rep.k.warning|Warning|Warning|警告
+rep.k.breakdown|Breakdown|Breakdown|故障
+rep.k.poor|Kondisi Poor|Poor condition|状况差
+rep.k.availability|Ketersediaan|Availability|可用率
+rep.t.perDay|Per hari|Per day|按日
+rep.t.topNg|Equipment dengan temuan terbanyak|Top equipment by findings|隐患最多的设备
+rep.t.byTech|Per teknisi|Per technician|按技术员
+rep.t.overdueList|PM terlambat|Overdue PM|逾期 PM
+rep.t.results|Hasil|Results|结果
+rep.t.byPriority|Per prioritas|By priority|按优先级
+rep.t.topEquipment|Equipment paling sering rusak|Equipment with most failures|故障最多的设备
+rep.t.list|Daftar|List|清单
+rep.t.bySource|Per sumber|By source|按来源
+rep.t.byStatus|Per status|By status|按状态
+rep.t.byAssignee|Per pelaksana|By assignee|按执行人
+rep.t.byCategory|Per kategori|By category|按类别
+rep.t.byType|Per jenis|By type|按类型
+rep.t.byRisk|Per tingkat risiko|By risk level|按风险等级
+rep.t.usage|Pemakaian|Usage|领用
+rep.t.received|Penerimaan|Receipts|入库
+rep.t.lowList|Stok menipis|Low stock|库存不足
+rep.t.byBuilding|Per gedung|By building|按楼栋
+rep.t.byCondition|Per kondisi|By condition|按状况
+rep.t.attention|Perlu perhatian|Needs attention|需关注
+rep.t.summaryTable|Indikator utama|Key indicators|关键指标
+rep.c.date|Tanggal|Date|日期
+rep.c.total|Total|Total|总数
+rep.c.ng|NG|NG|不合格
+rep.c.critical|Kritis|Critical|严重
+rep.c.equipment|Equipment|Equipment|设备
+rep.c.findings|Temuan|Findings|隐患数
+rep.c.technician|Teknisi|Technician|技术员
+rep.c.done|Selesai|Done|完成
+rep.c.onTime|Tepat waktu|On time|按时
+rep.c.pmTitle|Judul PM|PM title|PM 标题
+rep.c.dueDate|Jatuh tempo|Due date|到期日
+rep.c.daysLate|Hari terlambat|Days late|逾期天数
+rep.c.result|Hasil|Result|结果
+rep.c.priority|Prioritas|Priority|优先级
+rep.c.failures|Jumlah kerusakan|Failures|故障次数
+rep.c.id|ID|ID|编号
+rep.c.status|Status|Status|状态
+rep.c.mttrHours|MTTR (jam)|MTTR (h)|MTTR（小时）
+rep.c.source|Sumber|Source|来源
+rep.c.category|Kategori|Category|类别
+rep.c.type|Jenis|Type|类型
+rep.c.risk|Risiko|Risk|风险
+rep.c.item|Barang|Item|物料
+rep.c.qtyOut|Keluar|Out|出库
+rep.c.onWO|Di WO|On WO|工单用
+rep.c.unit|Satuan|Unit|单位
+rep.c.qtyIn|Masuk|In|入库
+rep.c.stock|Stok|Stock|库存
+rep.c.minimum|Minimum|Minimum|最低
+rep.c.name|Nama|Name|名称
+rep.c.location|Lokasi|Location|位置
+rep.c.building|Gedung|Building|楼栋
+rep.c.condition|Kondisi|Condition|状况
+rep.c.warning|Warning|Warning|警告
+rep.c.breakdown|Breakdown|Breakdown|故障
+rep.c.indicator|Indikator|Indicator|指标
+rep.c.value|Nilai|Value|数值
+rep.c.Open|Open|Open|新建
+rep.c.In Progress|Dikerjakan|In Progress|进行中
+rep.c.Pending|Pending|Pending|挂起
+rep.c.Completed|Selesai|Completed|已完成
+rep.c.Closed|Ditutup|Closed|已关闭
+rep.kpi|Indikator|Indicators|指标
+rep.from|Dari|From|从
+rep.to|Sampai|To|至
+rep.d7|7 hari|7 days|7天
+rep.d30|30 hari|30 days|30天
+rep.d90|90 hari|90 days|90天
+rep.hours|jam|h|小时
+rep.days|hari|days|天
+rep.print|Cetak / PDF|Print / PDF|打印 / PDF
+rep.snapshot|Kondisi saat ini|Current snapshot|当前状态
+rep.generated|dibuat {at}|generated {at}|生成于 {at}
+rep.csvFail|Unduhan CSV gagal di peramban ini.|CSV download failed in this browser.|此浏览器下载 CSV 失败。
+rule.rangeTooLong|Rentang maksimal 366 hari|Range is limited to 366 days|范围最多 366 天
+rule.backupFailed|Backup gagal|Backup failed|备份失败
+net.offline|Tidak ada koneksi internet. EMMS membutuhkan internet untuk bekerja.|No internet connection. EMMS needs internet to work.|无网络连接。EMMS 需要联网才能使用。
+health.title|Pemeriksaan kesehatan sistem|System health check|系统健康检查
+health.ok|Sehat|Healthy|正常
+health.warn|Perlu perhatian|Needs attention|需关注
+health.bad|Bermasalah|Problem|有问题
+health.recheck|Periksa ulang|Re-check|重新检查
+health.c.schema|Skema database|Database schema|数据库结构
+health.c.admin|Admin aktif|Active admin|活跃管理员
+health.c.drive|Folder Drive|Drive folder|Drive 文件夹
+health.c.trigger|Trigger otomasi|Automation trigger|自动化触发器
+health.c.lastRun|Job harian terakhir|Last daily job|最近每日任务
+health.c.backup|Backup|Backup|备份
+health.c.mailQuota|Kuota email|Mail quota|邮件额度
+health.c.dataSize|Ukuran data|Data size|数据量
+backup.title|Backup database|Database backup|数据库备份
+backup.desc|Menyalin spreadsheet database ke folder Drive EMMS_Files/Backups. Foto tidak ikut disalin (tetap di Drive). Backup otomatis berjalan mingguan lewat job harian.|Copies the database spreadsheet to the Drive folder EMMS_Files/Backups. Photos are not copied (they stay in Drive). Automatic backups run weekly through the daily job.|将数据库表格复制到 Drive 文件夹 EMMS_Files/Backups。照片不复制（保留在 Drive）。自动备份通过每日任务每周执行。
+backup.name|Nama file|File name|文件名
+backup.by|Oleh|By|操作人
+backup.none|Belum ada backup.|No backups yet.|暂无备份。
+backup.now|Backup sekarang|Back up now|立即备份
+backup.done|Backup dibuat: {name}|Backup created: {name}|已创建备份：{name}
+f.BACKUP_AUTO|Backup otomatis mingguan|Weekly automatic backup|每周自动备份
+f.BACKUP_KEEP|Jumlah backup disimpan|Backups to keep|保留备份数

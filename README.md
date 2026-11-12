@@ -3,7 +3,7 @@
 Aplikasi CMMS kelistrikan berbasis **Google Apps Script + Google Sheets + Google Drive** (akun Gmail pribadi, tanpa server/hosting berbayar).
 UI 3 bahasa (Indonesia, English, 中文), responsif untuk komputer/tablet/HP.
 
-**Status: Phase 7 - Automation & Approval** (lihat `CHANGELOG.md`). Phase 8 belum dibangun; menu-nya tampil sebagai placeholder.
+**Status: v1.0.0 - Phase 1-8 selesai** (lihat `CHANGELOG.md` dan `docs/handover.md`). Modul: Dashboard, Equipment+QR, Inspeksi, PM, Corrective & Work Order, K3 Listrik, Inventaris, Otomasi & Approval, Laporan, Backup.
 
 ## Isi Phase 1
 Database 26 sheet otomatis · login Email OTP + RBAC 5 role (dicek di backend) · manajemen pengguna · dashboard ·

@@ -212,8 +212,16 @@ td.num,th.num{text-align:right}
   .toolbar select{flex:1 1 45%}
   .btn{padding:9px 12px}
 }
+  .offline-bar{position:fixed;left:0;right:0;bottom:0;z-index:200;background:#b91c1c;color:#fff;text-align:center;padding:8px 12px;font-size:13px;font-weight:600}
+  .kpi{padding:14px}.kpi-n{font-size:24px;font-weight:700;line-height:1.1}
+  .rep-head{margin:4px 0 10px}
 @media print{
   @page{margin:8mm}
+  body.rep-print{background:#fff}
+  body.rep-print .side,body.rep-print .top,body.rep-print .scrim,body.rep-print .no-print,body.rep-print #toast-root,body.rep-print #loadbar{display:none!important}
+  body.rep-print .main{margin:0;padding:0}
+  body.rep-print .card{box-shadow:none;break-inside:avoid}
+  body.rep-print .table-wrap{overflow:visible}
   body.printing{background:#fff}
   body.printing #root,body.printing #toast-root,body.printing #loadbar{display:none!important}
   body.printing .modal-back{position:static;background:none;padding:0;display:block;overflow:visible}

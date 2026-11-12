@@ -137,7 +137,10 @@ function build(opts) {
       getFoldersByName: n => { const f = state.folders[n]; let used = false; return { hasNext: () => !!f && !used, next: () => { used = true; return f; } }; },
       createFolder: n => { const f = mkFolder(n); state.folders[n] = f; return f; },
       getFolderById: id => { const f = Object.values(state.folders).find(x => x.getId() === id); if (!f) throw new Error('no folder'); return f; },
-      getFileById: id => { const f = state.files[id]; if (!f) throw new Error('no file'); return f; }
+      getFileById: id => {
+        if (state.spreadsheets[id]) return { makeCopy: (name, dest) => { if (state.copyFail) throw new Error('Drive quota exceeded'); return dest.createFile({ name }); } };
+        const f = state.files[id]; if (!f) throw new Error('no file'); return f;
+      }
     },
     HtmlService: { createTemplateFromFile: () => ({ evaluate: () => ({ setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; } }) }), XFrameOptionsMode: { ALLOWALL: 1 }, createHtmlOutput: h => ({ html: h, setTitle() { return this; } }), createHtmlOutputFromFile: () => ({ getContent: () => '' }) },
     __state: state
@@ -149,7 +152,7 @@ function build(opts) {
       getId: () => id,
       getFoldersByName: n => { const x = sub[n]; let used = false; return { hasNext: () => !!x && !used, next: () => { used = true; return x; } }; },
       createFolder: n => { const x = mkFolder(n); sub[n] = x; return x; },
-      createFile: blob => { const fid = 'file_' + Math.random().toString(36).slice(2); const file = { getId: () => fid, getBlob: () => blob, setTrashed: () => { delete state.files[fid]; } }; state.files[fid] = file; return file; }
+      createFile: blob => { const fid = 'file_' + Math.random().toString(36).slice(2); const file = { getId: () => fid, getBlob: () => blob, getName: () => (blob && blob.name) || fid, setTrashed: () => { delete state.files[fid]; } }; state.files[fid] = file; return file; }
     };
     return f;
   }
@@ -159,7 +162,7 @@ function build(opts) {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
   const code = files.map(f => '// ==== ' + f + '\n' + fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
   // Ekspos deklarasi top-level (const/class tidak otomatis jadi properti global)
-  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,CM,WO,EqStatus,Work,Safety,Risk,Loto,Inventory,Approvals,Automation,emmsDailyJob,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
+  const expose = '\n;Object.assign(globalThis,{CFG,AppError,SCHEMA,SHEET_ORDER,Schema,Db,Audit,Auth,Settings,Users,Master,Equipment,Dashboard,DriveSvc,Checklist,Inspection,Notify,PM,PMDate,Cal,CM,WO,EqStatus,Work,Safety,Risk,Loto,Inventory,Approvals,Automation,emmsDailyJob,Reports,Backup,SystemCheck,api,getRoutes_,doGet,setupEMMS,seedDemoData,runSelfTest,addAdminUser,diagnoseAuth});';
   vm.runInContext(code + expose, ctx, { filename: 'emms-all.gs' });
   return ctx;
 }
